@@ -32,7 +32,6 @@ describe('BrazilChoroplethMap', () => {
     fireEvent.click(spPath);
     expect(onSelectState).toHaveBeenCalledWith('SP');
 
-    // Zoom controls & keyboard navigation
     fireEvent.keyDown(spPath, { key: 'Enter' });
     expect(onSelectState).toHaveBeenCalledWith('SP');
     const zoomIn = screen.getByRole('button', { name: /Ampliar zoom/i });
@@ -54,6 +53,7 @@ describe('BrazilChoroplethMap', () => {
         brazilGeo={FIXTURE_BRAZIL_GEO}
         stateGeo={FIXTURE_SP_GEO}
         latest={FIXTURE_LATEST}
+        activeStateCities={FIXTURE_LATEST.states.SP.cities}
         selectedItem={FIXTURE_CATALOG[0]}
         selectedUf="SP"
         selectedCityCode="3550308"
@@ -74,5 +74,32 @@ describe('BrazilChoroplethMap', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Brasil$/i }));
     expect(onSelectState).toHaveBeenCalledWith(null);
+  });
+
+  it('renders state-level indicator coloring across municipalities when geoLevel is state', () => {
+    const stateLevelItem = {
+      ...FIXTURE_CATALOG[0],
+      id: 'gasolina-comum',
+      geoLevel: 'state' as const,
+      cadence: 'regulated' as const,
+    };
+
+    render(
+      <BrazilChoroplethMap
+        brazilGeo={FIXTURE_BRAZIL_GEO}
+        stateGeo={FIXTURE_SP_GEO}
+        latest={FIXTURE_LATEST}
+        activeStateCities={{}}
+        selectedItem={stateLevelItem}
+        selectedUf="SP"
+        selectedCityCode={null}
+        isDark={false}
+        loadingState={false}
+        onSelectState={vi.fn()}
+        onSelectCity={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Índice oficial estadual/i)).toBeInTheDocument();
   });
 });

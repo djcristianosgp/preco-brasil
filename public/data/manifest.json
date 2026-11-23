@@ -1,29 +1,104 @@
 {
-  "dataVersion": "2026.11.23.2",
-  "generatedAt": "2026-11-23T16:34:40.201Z",
-  "firstCollectionDate": "2026-07-01",
+  "dataVersion": "2026.11.23.4",
+  "generatedAt": "2026-11-23T17:34:32.032Z",
+  "firstCollectionDate": "2026-01-01",
   "latestCollectionDate": "2026-11-13",
   "activeWindowStart": "2026-11-07",
   "activeWindowEnd": "2026-11-13",
-  "totalDays": 102,
-  "totalSamplesProcessed": 390584,
+  "totalDays": 138,
+  "totalSamplesProcessed": 466738,
   "statesCovered": 27,
-  "citiesCovered": 418,
+  "citiesCovered": 5512,
+  "itemsCount": 35,
+  "cmedProductsIndexed": 10831,
+  "energyFlag": {
+    "month": "2026-11-01",
+    "name": "Verde",
+    "additionalPerMwh": 0,
+    "additionalPerKwh": 0
+  },
+  "connectorStatus": [
+    {
+      "name": "anp",
+      "status": "ok",
+      "accepted": 82891
+    },
+    {
+      "name": "aneel",
+      "status": "ok",
+      "accepted": 60610
+    },
+    {
+      "name": "anvisa-cmed",
+      "status": "ok",
+      "accepted": 10831
+    },
+    {
+      "name": "conab-prohort",
+      "status": "ok",
+      "accepted": 13138
+    },
+    {
+      "name": "ibge-sinapi",
+      "status": "ok",
+      "accepted": 840
+    },
+    {
+      "name": "dieese-cesta",
+      "status": "ok",
+      "accepted": 2160
+    },
+    {
+      "name": "bcb-ptax",
+      "status": "ok",
+      "accepted": 222
+    },
+    {
+      "name": "community-nfce",
+      "status": "ok",
+      "accepted": 0
+    }
+  ],
   "sources": [
     {
-      "name": "ANP — Levantamento de Preços de Combustíveis (LPC)",
+      "name": "ANP — Levantamento de Preços de Combustíveis e GLP (LPC)",
       "url": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis",
       "cadence": "Coleta diária / Atualização matinal às 06:00 BRT"
     },
     {
-      "name": "IBGE — Malhas Territoriais v3 & Localidades v1",
-      "url": "https://servicodados.ibge.gov.br/api/docs",
-      "cadence": "Malha oficial pré-cacheada (27 UFs / 5.571 municípios)"
+      "name": "ANEEL — Tarifas Homologadas (B1 Residencial) & Bandeiras Tarifárias",
+      "url": "https://dadosabertos.aneel.gov.br/",
+      "cadence": "Mensal por distribuidora (5.514 municípios IBGE mapeados)"
     },
     {
-      "name": "Open Food Facts Brasil — API v2 GTIN/EAN",
+      "name": "ANVISA / CMED — Tabela de Preços Máximos ao Consumidor (PMC)",
+      "url": "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/cmed/precos",
+      "cadence": "Teto regulado por alíquota modal de ICMS nas 27 UFs (+11k EANs)"
+    },
+    {
+      "name": "CONAB / PROHORT — Cotação Diária de Hortigranjeiros (CEASAs)",
+      "url": "https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/hortigranjeiros-prohort",
+      "cadence": "Diária nas principais CEASAs estaduais"
+    },
+    {
+      "name": "IBGE — SINAPI Construção Civil (Agregado 2296) & Malhas v3",
+      "url": "https://servicodados.ibge.gov.br/api/docs",
+      "cadence": "Mensal (27 UFs + Brasil) / Malhas oficiais pré-cacheadas"
+    },
+    {
+      "name": "DIEESE — Pesquisa Nacional da Cesta Básica de Alimentos",
+      "url": "https://www.dieese.org.br/analisecestabasica/salarioMinimo.html",
+      "cadence": "Mensal nas 27 capitais brasileiras"
+    },
+    {
+      "name": "Banco Central do Brasil — Dólar Comercial PTAX (SGS Série 1)",
+      "url": "https://dadosabertos.bcb.gov.br/",
+      "cadence": "Diária (pregões úteis BCB)"
+    },
+    {
+      "name": "Open Food Facts Brasil & Auditor NFC-e (ENCAT v2)",
       "url": "https://br.openfoodfacts.org/",
-      "cadence": "Consulta ao vivo sob demanda por código de barras"
+      "cadence": "Consulta GTIN sob demanda e contribuição auditada via cupom fiscal"
     }
   ]
 }

@@ -1,5 +1,18 @@
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 
+export type ItemCategory =
+  | 'all'
+  | 'combustiveis'
+  | 'energia'
+  | 'cesta-basica'
+  | 'hortifruti'
+  | 'medicamentos'
+  | 'construcao'
+  | 'varejo-nfce';
+
+export type PriceCadence = 'daily' | 'monthly' | 'regulated';
+export type GeoLevel = 'city' | 'state';
+
 export interface CatalogItem {
   id: string;
   name: string;
@@ -8,6 +21,9 @@ export interface CatalogItem {
   categoryLabel: string;
   unit: string;
   decimals: number;
+  cadence?: PriceCadence;
+  geoLevel?: GeoLevel;
+  codeLabel?: string;
   anpCode: string;
   ncm: string;
   barcodes: string[];
@@ -40,6 +56,13 @@ export interface StateSnapshot {
   region: string;
   items: Record<string, PriceMetric>;
   citiesCount: number;
+  citiesByItem?: Record<string, number>;
+  cities: Record<string, CitySnapshot>;
+}
+
+export interface StateLatestPayload {
+  uf: string;
+  name: string;
   cities: Record<string, CitySnapshot>;
 }
 
@@ -60,6 +83,10 @@ export interface DailyPoint {
   min: number;
   max: number;
   samples: number;
+}
+
+export interface ChartDataPoint extends DailyPoint {
+  usd?: number | null;
 }
 
 export interface ItemHistoryPayload {
@@ -87,6 +114,20 @@ export interface DataSourceDescriptor {
   cadence: string;
 }
 
+export interface EnergyFlagInfo {
+  month: string;
+  name: string;
+  additionalPerMwh: number;
+  additionalPerKwh: number;
+}
+
+export interface ConnectorStatusEntry {
+  name: string;
+  status: 'ok' | 'warning';
+  accepted: number;
+  message?: string;
+}
+
 export interface DataManifest {
   dataVersion: string;
   generatedAt: string;
@@ -98,6 +139,10 @@ export interface DataManifest {
   totalSamplesProcessed: number;
   statesCovered: number;
   citiesCovered: number;
+  itemsCount?: number;
+  cmedProductsIndexed?: number;
+  energyFlag?: EnergyFlagInfo;
+  connectorStatus?: ConnectorStatusEntry[];
   sources: DataSourceDescriptor[];
 }
 
@@ -107,6 +152,22 @@ export interface SnapshotIndexEntry {
   latestCollectionDate: string;
   totalSamples: number;
   nationalAverages: Record<string, number>;
+}
+
+export interface MacroDollarPoint {
+  date: string;
+  rate: number;
+}
+
+export interface MacroDollarPayload {
+  seriesId: number;
+  name: string;
+  sourceName: string;
+  unit: string;
+  latestDate: string;
+  latestRate: number;
+  changePct: number;
+  points: MacroDollarPoint[];
 }
 
 export interface GeoAreaProperties {
@@ -129,14 +190,58 @@ export interface ExternalBarcodeProduct {
   source: string;
 }
 
+export interface CmedShardRecord {
+  p: string;
+  s: string;
+  a: string;
+  l: string;
+  t: string;
+  pmc: number[];
+}
+
+export interface CmedProductResult {
+  ean: string;
+  productName: string;
+  substance: string;
+  presentation: string;
+  laboratory: string;
+  tarja: string;
+  pmcByIcms: Record<string, number>;
+  pmcByUf: Record<string, number>;
+  minPmc: number;
+  maxPmc: number;
+}
+
 export interface BarcodeLookupResult {
   query: string;
   isValidGtin: boolean;
   gtinFormat: 'EAN-8' | 'EAN-13' | 'GTIN-14' | 'ANP/NCM' | 'TEXTO';
   catalogMatches: CatalogItem[];
+  cmedProduct?: CmedProductResult | null;
   externalProduct: ExternalBarcodeProduct | null;
-  status: 'catalog-match' | 'external-found' | 'not-found' | 'error';
+  status: 'catalog-match' | 'cmed-found' | 'external-found' | 'not-found' | 'error';
   message: string;
+}
+
+export interface NfceParsedResult {
+  rawInput: string;
+  accessKey: string;
+  isValidAccessKey: boolean;
+  uf: string;
+  ufCode: string;
+  sefazUrl: string;
+  emissionYearMonth: string;
+  cnpj: string;
+  cnpjFormatted: string;
+  isValidCnpj: boolean;
+  model: string;
+  modelLabel: string;
+  series: string;
+  number: string;
+  qrVersion: string;
+  environment: 'Produção' | 'Homologação' | 'Não informado';
+  totalValue: number | null;
+  errors: string[];
 }
 
 export type HistoryRange = '7d' | '30d' | '90d' | 'all';

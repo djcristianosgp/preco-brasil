@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lookupBarcodeOrProduct } from '@/services/barcodeLookupService';
+import { clearDataCache } from '@/services/priceDataService';
 import type { CatalogItem } from '@/types/pricing';
 
 const CATALOG: CatalogItem[] = [
@@ -23,6 +24,7 @@ const CATALOG: CatalogItem[] = [
 
 describe('barcodeLookupService', () => {
   afterEach(() => {
+    clearDataCache();
     vi.restoreAllMocks();
   });
 
@@ -42,11 +44,42 @@ describe('barcodeLookupService', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('resolves external retail EAN-13 via Open Food Facts Brasil', async () => {
+  it('resolves local sharded ANVISA/CMED pharmacy EAN-13 offline without calling Open Food Facts', async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      if (String(url).includes('/data/cmed/14.json')) {
+        return new Response(
+          JSON.stringify({
+            '7898075310314': {
+              p: 'DORFEBRIL',
+              s: 'DIPIRONA MONOIDRATADA',
+              a: '500 MG/ML SOL OR 10 ML',
+              l: '1FARMA',
+              t: 'Isento de Prescrição',
+              pmc: [9.85, 9.9, 9.97, 10.1, 10.15, 10.21, 10.3, 10.35, 10.48, 10.55, 10.65],
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response('Unexpected URL', { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await lookupBarcodeOrProduct('7898075310314', CATALOG);
+    expect(res.status).toBe('cmed-found');
+    expect(res.cmedProduct?.productName).toBe('DORFEBRIL');
+    expect(res.cmedProduct?.pmcByUf.SP).toBe(9.97);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves external retail EAN-13 via Open Food Facts Brasil when absent from CMED', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
+      vi.fn().mockImplementation(async (url: string) => {
+        if (String(url).includes('/data/cmed/')) {
+          return new Response(JSON.stringify({}), { status: 200 });
+        }
+        return new Response(
           JSON.stringify({
             status: 1,
             product: {
@@ -59,8 +92,8 @@ describe('barcodeLookupService', () => {
             },
           }),
           { status: 200 },
-        ),
-      ),
+        );
+      }),
     );
 
     const res = await lookupBarcodeOrProduct('7891000100103', CATALOG);
@@ -72,12 +105,25 @@ describe('barcodeLookupService', () => {
   it('handles not-found external GTIN and network failures gracefully', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 0 }), { status: 200 })),
+      vi.fn().mockImplementation(async (url: string) => {
+        if (String(url).includes('/data/cmed/')) {
+          return new Response(JSON.stringify({}), { status: 200 });
+        }
+        return new Response(JSON.stringify({ status: 0 }), { status: 200 });
+      }),
     );
     const notFound = await lookupBarcodeOrProduct('7891000100103', CATALOG);
     expect(notFound.status).toBe('not-found');
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Err', { status: 503 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (String(url).includes('/data/cmed/')) {
+          return new Response(JSON.stringify({}), { status: 200 });
+        }
+        return new Response('Err', { status: 503 });
+      }),
+    );
     const errored = await lookupBarcodeOrProduct('7891000100103', CATALOG);
     expect(errored.status).toBe('error');
   });

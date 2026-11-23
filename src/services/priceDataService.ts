@@ -1,11 +1,14 @@
 import type {
   CatalogItem,
+  CmedShardRecord,
   DataManifest,
   GeoAreaFeatureCollection,
   ItemHistoryPayload,
   LatestPricesPayload,
+  MacroDollarPayload,
   SnapshotIndexEntry,
   StateHistoryPayload,
+  StateLatestPayload,
 } from '@/types/pricing';
 import { logger } from '@/utils/logger';
 
@@ -43,6 +46,33 @@ export async function loadCatalog(): Promise<CatalogItem[]> {
 
 export async function loadLatestPrices(): Promise<LatestPricesPayload> {
   return fetchJson<LatestPricesPayload>('/data/latest.json', false);
+}
+
+export async function loadStateLatest(uf: string): Promise<StateLatestPayload> {
+  const upperUf = uf.toUpperCase();
+  return fetchJson<StateLatestPayload>(`/data/latest/by-state/${upperUf}.json`, true);
+}
+
+export async function loadDollarPtax(): Promise<MacroDollarPayload | null> {
+  try {
+    return await fetchJson<MacroDollarPayload>('/data/macro/dolar-ptax.json', true);
+  } catch (err) {
+    logger.warn('Série do Dólar PTAX indisponível', err);
+    return null;
+  }
+}
+
+export async function loadCmedShard(
+  suffix2: string,
+): Promise<Record<string, CmedShardRecord>> {
+  try {
+    return await fetchJson<Record<string, CmedShardRecord>>(
+      `/data/cmed/${suffix2}.json`,
+      true,
+    );
+  } catch {
+    return {};
+  }
 }
 
 export async function loadBrazilGeo(): Promise<GeoAreaFeatureCollection> {

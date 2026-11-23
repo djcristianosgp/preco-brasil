@@ -2,21 +2,26 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   loadBrazilGeo,
   loadCatalog,
+  loadDollarPtax,
   loadItemHistory,
   loadLatestPrices,
   loadManifest,
   loadSnapshotsIndex,
   loadStateGeo,
   loadStateHistory,
+  loadStateLatest,
 } from '@/services/priceDataService';
 import type {
   CatalogItem,
+  CitySnapshot,
   DailyPoint,
   DataManifest,
   GeoAreaFeatureCollection,
   HistoryRange,
+  ItemCategory,
   ItemHistoryPayload,
   LatestPricesPayload,
+  MacroDollarPayload,
   MobileTab,
   PriceMetric,
   SeriesDisplayMode,
@@ -27,40 +32,30 @@ import type {
 import { searchCatalogItems } from '@/utils/barcode';
 import { formatBRL } from '@/utils/formatters';
 import { logger } from '@/utils/logger';
-
-function getInitialTheme(): ThemeMode {
-  if (typeof window === 'undefined') return 'light';
-  const stored = window.localStorage.getItem('precobrasil-theme');
-  if (stored === 'dark' || stored === 'light') return stored;
-  return 'light';
-}
-
-function sliceByRange(points: DailyPoint[], range: HistoryRange): DailyPoint[] {
-  if (points.length === 0 || range === 'all') return points;
-  const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
-  const lastDate = points[points.length - 1].date;
-  const cutoff = new Date(`${lastDate}T12:00:00Z`);
-  cutoff.setUTCDate(cutoff.getUTCDate() - (days - 1));
-  const cutoffIso = cutoff.toISOString().slice(0, 10);
-  return points.filter((p) => p.date >= cutoffIso);
-}
+import { getInitialTheme, sliceByRange } from '@/utils/seriesHelpers';
 
 export function usePriceExplorer() {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [manifest, setManifest] = useState<DataManifest | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [latest, setLatest] = useState<LatestPricesPayload | null>(null);
+  const [dolarPtax, setDolarPtax] = useState<MacroDollarPayload | null>(null);
   const [brazilGeo, setBrazilGeo] = useState<GeoAreaFeatureCollection | null>(null);
   const [stateGeo, setStateGeo] = useState<GeoAreaFeatureCollection | null>(null);
+  const [stateLatestCities, setStateLatestCities] = useState<Record<string, CitySnapshot> | null>(
+    null,
+  );
   const [itemHistory, setItemHistory] = useState<ItemHistoryPayload | null>(null);
   const [stateHistory, setStateHistory] = useState<StateHistoryPayload | null>(null);
   const [snapshots, setSnapshots] = useState<SnapshotIndexEntry[]>([]);
 
+  const [selectedCategory, setSelectedCategory] = useState<ItemCategory>('combustiveis');
   const [selectedItemId, setSelectedItemId] = useState<string>('gasolina-comum');
   const [selectedUf, setSelectedUf] = useState<string | null>(null);
   const [selectedCityCode, setSelectedCityCode] = useState<string | null>(null);
   const [historyRange, setHistoryRange] = useState<HistoryRange>('30d');
   const [seriesMode, setSeriesMode] = useState<SeriesDisplayMode>('avg7d');
+  const [showDollarOverlay, setShowDollarOverlay] = useState<boolean>(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>('mapa');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
@@ -83,12 +78,13 @@ export function usePriceExplorer() {
       setLoadingBootstrap(true);
       setError(null);
       try {
-        const [m, cat, lat, geo, snaps] = await Promise.all([
+        const [m, cat, lat, geo, snaps, ptax] = await Promise.all([
           loadManifest(),
           loadCatalog(),
           loadLatestPrices(),
           loadBrazilGeo(),
           loadSnapshotsIndex(),
+          loadDollarPtax().catch(() => null),
         ]);
         if (!active) return;
         setManifest(m);
@@ -96,6 +92,7 @@ export function usePriceExplorer() {
         setLatest(lat);
         setBrazilGeo(geo);
         setSnapshots(snaps);
+        setDolarPtax(ptax);
         if (cat.length > 0) {
           setSelectedItemId((prev) => (cat.some((c) => c.id === prev) ? prev : cat[0].id));
         }
@@ -136,16 +133,22 @@ export function usePriceExplorer() {
     if (!selectedUf) {
       setStateGeo(null);
       setStateHistory(null);
+      setStateLatestCities(null);
       return;
     }
     let active = true;
     const stateCode = latest?.states[selectedUf]?.code;
     setLoadingStateData(true);
-    Promise.all([loadStateGeo(selectedUf, stateCode), loadStateHistory(selectedUf)])
-      .then(([geo, hist]) => {
+    Promise.all([
+      loadStateGeo(selectedUf, stateCode),
+      loadStateHistory(selectedUf),
+      loadStateLatest(selectedUf).catch(() => null),
+    ])
+      .then(([geo, hist, stLatest]) => {
         if (!active) return;
         setStateGeo(geo);
         setStateHistory(hist);
+        setStateLatestCities(stLatest?.cities ?? null);
       })
       .catch((err) => {
         logger.error(`Erro ao carregar dados detalhados de ${selectedUf}`, err);
@@ -168,10 +171,17 @@ export function usePriceExplorer() {
     [selectedUf, latest],
   );
 
+  const activeStateCities = useMemo(() => {
+    if (stateLatestCities && Object.keys(stateLatestCities).length > 0) {
+      return stateLatestCities;
+    }
+    return selectedStateSnapshot?.cities || {};
+  }, [stateLatestCities, selectedStateSnapshot]);
+
   const selectedCitySnapshot = useMemo(() => {
-    if (!selectedStateSnapshot || !selectedCityCode) return null;
-    return selectedStateSnapshot.cities[selectedCityCode] || null;
-  }, [selectedStateSnapshot, selectedCityCode]);
+    if (!selectedCityCode) return null;
+    return activeStateCities[selectedCityCode] || null;
+  }, [activeStateCities, selectedCityCode]);
 
   const activeScopeMetric: PriceMetric | null = useMemo(() => {
     if (!latest || !selectedItem) return null;
@@ -184,23 +194,53 @@ export function usePriceExplorer() {
     return latest.national[selectedItem.id] || null;
   }, [latest, selectedItem, selectedStateSnapshot, selectedCitySnapshot]);
 
-  const filteredCatalog = useMemo(
-    () => searchCatalogItems(catalog, searchQuery),
-    [catalog, searchQuery],
+  const categoryCatalog = useMemo(() => {
+    if (selectedCategory === 'all') return catalog;
+    const subset = catalog.filter((item) => item.category === selectedCategory);
+    return subset.length > 0 ? subset : catalog;
+  }, [catalog, selectedCategory]);
+
+  const filteredCatalog = useMemo(() => {
+    if (searchQuery.trim()) {
+      return searchCatalogItems(catalog, searchQuery);
+    }
+    return categoryCatalog;
+  }, [catalog, categoryCatalog, searchQuery]);
+
+  const selectCategory = useCallback(
+    (category: ItemCategory) => {
+      setSelectedCategory(category);
+      if (category === 'all') return;
+      const subset = catalog.filter((item) => item.category === category);
+      if (subset.length > 0 && !subset.some((item) => item.id === selectedItemId)) {
+        setSelectedItemId(subset[0].id);
+      }
+    },
+    [catalog, selectedItemId],
+  );
+
+  const selectItem = useCallback(
+    (itemId: string) => {
+      setSelectedItemId(itemId);
+      const found = catalog.find((c) => c.id === itemId);
+      if (found && selectedCategory !== 'all' && found.category !== selectedCategory) {
+        setSelectedCategory(found.category as ItemCategory);
+      }
+    },
+    [catalog, selectedCategory],
   );
 
   const activeSeries = useMemo(() => {
     if (!itemHistory) return [];
     let raw: DailyPoint[] = itemHistory.national;
     if (selectedCityCode && stateHistory?.cities[selectedCityCode]) {
-      raw = stateHistory.cities[selectedCityCode].items[selectedItemId] || [];
+      raw = stateHistory.cities[selectedCityCode].items[selectedItemId] || raw;
     } else if (selectedUf && itemHistory.states[selectedUf]) {
       raw = itemHistory.states[selectedUf];
     }
     return sliceByRange(raw, historyRange);
   }, [itemHistory, stateHistory, selectedUf, selectedCityCode, selectedItemId, historyRange]);
 
-  // Dynamic SEO update on route/scope changes
   useEffect(() => {
     if (!selectedItem) return;
     const scopeName = selectedCitySnapshot
@@ -208,7 +248,9 @@ export function usePriceExplorer() {
       : selectedStateSnapshot
         ? `${selectedStateSnapshot.name} (${selectedStateSnapshot.uf})`
         : 'Brasil';
-    const priceText = activeScopeMetric ? formatBRL(activeScopeMetric.avg, selectedItem.decimals) : '';
+    const priceText = activeScopeMetric
+      ? formatBRL(activeScopeMetric.avg, selectedItem.decimals)
+      : '';
     document.title = priceText
       ? `${selectedItem.shortName}: ${priceText} em ${scopeName} — PreçoBrasil`
       : `${selectedItem.name} em ${scopeName} — PreçoBrasil`;
@@ -217,7 +259,7 @@ export function usePriceExplorer() {
     if (metaDesc && priceText) {
       metaDesc.setAttribute(
         'content',
-        `Preço médio de ${selectedItem.name} em ${scopeName}: ${priceText}. Série histórica diária oficial (ANP) e consulta por código de barras no PreçoBrasil.`,
+        `Preço médio de ${selectedItem.name} em ${scopeName}: ${priceText}. Série histórica oficial (${selectedItem.sourceName}) e consulta por código de barras no PreçoBrasil.`,
       );
     }
   }, [selectedItem, selectedStateSnapshot, selectedCitySnapshot, selectedUf, activeScopeMetric]);
@@ -244,15 +286,22 @@ export function usePriceExplorer() {
     toggleTheme,
     manifest,
     catalog,
+    categoryCatalog,
     filteredCatalog,
+    selectedCategory,
+    selectCategory,
     latest,
+    dolarPtax,
+    showDollarOverlay,
+    setShowDollarOverlay,
     brazilGeo,
     stateGeo,
+    activeStateCities,
     itemHistory,
     stateHistory,
     snapshots,
     selectedItemId,
-    setSelectedItemId,
+    setSelectedItemId: selectItem,
     selectedItem,
     selectedUf,
     selectedStateSnapshot,

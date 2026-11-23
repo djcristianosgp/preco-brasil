@@ -1,65 +1,34 @@
-# PreçoBrasil — Observatório Nacional de Preços por Estado e Município
+# PreçoBrasil — Observatório Nacional de Preços (35 Itens Oficiais + CMED + NFC-e)
 
 [![Licença: MIT](https://img.shields.io/badge/Licen%C3%A7a-MIT-blue.svg)](./LICENSE)
 [![React 18](https://img.shields.io/badge/React-18.3-1D4ED8.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6.svg)](https://www.typescriptlang.org/)
 [![Vite 6](https://img.shields.io/badge/Vite-6-646CFF.svg)](https://vite.dev/)
 [![Deploy Vercel](https://img.shields.io/badge/Deploy-Vercel-000000.svg)](https://vercel.com/)
-[![Dados Abertos](https://img.shields.io/badge/Dados-ANP%20%2B%20IBGE-059669.svg)](./docs/DATA-SOURCES-ARCHITECTURE.md)
+[![Fontes Oficiais](https://img.shields.io/badge/Dados-ANP%20%7C%20ANEEL%20%7C%20ANVISA%20%7C%20CONAB%20%7C%20IBGE%20%7C%20DIEESE%20%7C%20BCB-059669.svg)](./docs/DATA-SOURCES-ARCHITECTURE.md)
 
-Plataforma web **mobile-first** com padrão visual corporativo para acompanhar a **evolução diária dos preços médios no Brasil**, com mapa coroplético interativo por **Estado (27 UFs)** e **zoom desmembrando todos os Municípios (5.571 geometrias IBGE)**, histórico diário real, busca exata e leitor por **código de barras (ANP, NCM, EAN-13 / GTIN)** e atualização automática diária às **06:00 BRT** via JSON versionado para deploy contínuo na **Vercel**.
+Plataforma web **mobile-first** com padrão corporativo para monitorar a **evolução diária dos preços reais no Brasil**, com mapa coroplético interativo por **Estado (27 UFs)** e **zoom desmembrando todos os Municípios (5.512 localidades ativas / 5.571 malhas IBGE)**, **35 indicadores econômicos em 6 categorias**, consulta instantânea a **10.831 medicamentos ANVISA/CMED por código de barras**, eixo comparativo com o **Dólar PTAX (Banco Central)**, **Auditor de QR Code de Cupom Fiscal NFC-e** e atualização automática diária às **06:00 BRT** na **Vercel**.
 
 ---
 
 ## Principais Recursos
 
-- **Mapa Coroplético em 2 Níveis (`d3-geo` + IBGE Malhas v3)**:
-  - Visão inicial do **Brasil** dividido nos 27 estados, colorido por faixa de preço do item selecionado.
-  - Ao tocar/clicar em um estado, o mapa aplica zoom desmembrando os **municípios** daquela UF e exibe os preços médios municipais, faixa mínimo–máximo e quantidade de coletas oficiais.
-- **Evolução Diária com Série Histórica (`Recharts`)**:
-  - Acompanhamento dia a dia com alternância entre **Média Móvel de 7 dias** (`avg7d`) e **Coleta Exata do Dia** (`avg`), filtros de horizonte (`7D`, `30D`, `90D`, `Tudo`), linha de referência nacional e tabela resumida dos últimos pregões.
-- **Busca Exata & Leitor de Código de Barras (Câmera + GTIN/ANP/NCM)**:
-  - Busca sem ambiguidade por código ANP (`320102001`), código fiscal NCM (`27101259`), GTIN/EAN ou descrição.
-  - Validação matemática de dígito verificador GS1 (`EAN-8`, `EAN-13`, `GTIN-14`).
-  - Consulta ao vivo na API v2 do **Open Food Facts Brasil** para códigos de barras de varejo ainda fora da cesta principal.
-  - Leitor pela câmera do celular com `html5-qrcode` carregado sob demanda.
-- **Padrão Corporativo Mobile-First & PWA**:
-  - Navegação inferior dedicada no celular (`Mapa`, `Itens`, `Histórico`, `Código`), drawer/bottom-sheet de detalhes por município, tema **Claro/Escuro**, `tabular-nums` em todos os valores financeiros e suporte a instalação como PWA (`manifest.webmanifest`).
-- **Paridade Etanol vs Gasolina**:
-  - Cálculo automático da relação Etanol/Gasolina na faixa de indicadores (sinalizando competitividade no limite clássico de `≤ 70%`).
-
----
-
-## Cesta Inicial Monitorada (Combustíveis & Energia — ANP)
-
-| Ordem | Item | Unidade | Código ANP | NCM | Fonte Oficial |
-| :---: | :--- | :---: | :---: | :---: | :--- |
-| 1 | **Gasolina Comum** | `R$/L` | `320102001` | `27101259` | ANP — LPC |
-| 2 | **Etanol Hidratado** | `R$/L` | `810101001` | `22071090` | ANP — LPC |
-| 3 | **Óleo Diesel S10** | `R$/L` | `820101034` | `27101921` | ANP — LPC |
-| 4 | **Óleo Diesel Comum** | `R$/L` | `820101012` | `27101921` | ANP — LPC |
-| 5 | **Gasolina Aditivada** | `R$/L` | `320102002` | `27101259` | ANP — LPC |
-| 6 | **Gás de Cozinha (GLP 13 kg)** | `R$/13kg` | `210203001` | `27111910` | ANP — GLP |
-| 7 | **Gás Natural Veicular (GNV)** | `R$/m³` | `220101005` | `27112100` | ANP — LPC |
-
-*(A série histórica incluída no repositório cobre **102 dias de coletas reais em 2026** com **390.584 registros** distribuídos nas **27 UFs** e **418 municípios** pesquisados pela ANP.)*
-
----
-
-## Arquitetura de Atualização Diária e Deploy na Vercel
-
-O projeto adota **persistência estática versionada em JSON**: sem custo de banco de dados gerenciado, sem *cold start* e com histórico imutável rastreado pelo próprio Git.
-
-```mermaid
-flowchart LR
-    ANP["Dados Abertos ANP\n(ultimas-4-semanas-*.csv)"] -->|"06:00 BRT (cron 09:00 UTC)\nGitHub Actions"| UPD["npm run data:update\n(Merge incremental + validação)"]
-    IBGE["IBGE Malhas v3 & Localidades v1\n(Pré-cacheadas em public/geo/)"] --> UPD
-    UPD --> JSON["public/data/\nmanifest.json (vYYYY.MM.DD.N)\nlatest.json + history/ + snapshots/"]
-    JSON -->|"typecheck + lint + test + build\ngit push main"| GH["GitHub Repository"]
-    GH -->|"Auto-Deploy CDN Global"| VERCEL["Vercel Production"]
-```
-
-Consulte [docs/DATA-SOURCES-ARCHITECTURE.md](./docs/DATA-SOURCES-ARCHITECTURE.md) para o estudo completo das fontes oficiais no Brasil (ANP, IBGE, SEFAZ NFC-e estaduais, CONAB/DIEESE e bases GTIN).
+- **Mapa Coroplético Brasil → Município (`d3-geo` + IBGE Malhas v3)**:
+  - Visão nacional das **27 UFs**, com clique/toque para desmembrar os **municípios** do estado selecionado.
+  - Em **Energia Elétrica B1 (ANEEL)**, o mapa municipal ilumina **5.510 municípios brasileiros** (~99% do país) conforme a distribuidora local e a bandeira tarifária vigente.
+  - Carregamento estadual fatiado sob demanda (`latest/by-state/{UF}.json`) mantendo o payload inicial leve (`~125 KB`).
+- **6 Categorias Econômicas (35 Itens Oficiais)**:
+  1. **Combustíveis Automotivos (ANP)**: Gasolina Comum (padrão inicial), Etanol Hidratado, Diesel S10, Diesel Comum, Gasolina Aditivada, GNV.
+  2. **Energia & Gás (ANEEL + ANP)**: Energia Elétrica Residencial B1 (`R$/kWh` + Bandeira Tarifária) e GLP 13 kg.
+  3. **Cesta Básica Nacional (DIEESE)**: Custo Total Mensal + Arroz, Feijão, Carne Bovina, Leite, Café, Óleo de Soja e Açúcar nas **27 capitais**.
+  4. **Hortifrúti Atacado (CONAB / PROHORT)**: Cotações diárias nas CEASAs para Tomate, Batata, Cebola, Banana Prata, Laranja Pera, Cenoura, Maçã e Alho.
+  5. **Medicamentos Regulados (ANVISA / CMED)**: 8 fármacos populares por estado + lookup local completo de **10.831 medicamentos EAN-13** com Preço Máximo ao Consumidor (PMC) pelas alíquotas de ICMS de 2026 (17% a 23%).
+  6. **Construção Civil (IBGE / SINAPI)**: Custo médio por m² (Total, Materiais e Mão de Obra) nas **27 UFs**.
+- **Série Histórica + Dólar PTAX (`Recharts`)**:
+  - Alternância entre **Média Móvel de 7 dias** (`avg7d`) e **Valor Exato do Dia**, filtros `7D / 30D / 90D / Tudo` e toggle de **segundo eixo comparativo com o Dólar Comercial PTAX (BCB)**.
+- **Busca por Código de Barras & Auditor de Cupom NFC-e (Câmera + ENCAT v2)**:
+  - Busca instantânea por **ANP**, **NCM**, **EAN-13 Farmacêutico (CMED offline sharded)** e **Open Food Facts Brasil v2**.
+  - Aba dedicada **Cupom NFC-e**: valida QR Codes ENCAT v2 e chaves de 44 dígitos (dígito verificador Módulo 11 + CNPJ + UF IBGE), abre a consulta pública oficial da SEFAZ estadual e prepara contribuição aberta via GitHub Issue auditável (`public/data/community-nfce.json`).
 
 ---
 
@@ -68,8 +37,6 @@ Consulte [docs/DATA-SOURCES-ARCHITECTURE.md](./docs/DATA-SOURCES-ARCHITECTURE.md
 ### Pré-requisitos
 - **Node.js `>= 20`** e **npm**
 
-### Passo a Passo
-
 ```bash
 git clone https://github.com/djcristianosgp/preco-brasil.git
 cd preco-brasil
@@ -77,90 +44,32 @@ npm install
 npm run dev
 ```
 
-Acesse `http://localhost:5173` no navegador (use `npm run dev -- --host` caso queira abrir diretamente pelo celular na mesma rede Wi-Fi).
+Acesse `http://localhost:5173` (use `npm run dev -- --host` para testar diretamente no celular pela rede local).
 
 ### Scripts Disponíveis
 
 | Comando | Descrição |
 | :--- | :--- |
 | `npm run dev` | Inicia o servidor local de desenvolvimento (`Vite`). |
-| `npm run data:update` | Baixa as últimas 4 semanas oficiais da ANP e atualiza `public/data/` preservando o histórico antigo. |
-| `npm run data:backfill` | Descobre os CSVs mensais de 2026 no portal da ANP e reconstrói a série histórica (use `-- --full-year` para o ano inteiro). |
-| `npm run data:geo` | Baixa/regenera as malhas GeoJSON do IBGE (`public/geo/`) com correção de *winding order* para `d3-geo`. |
-| `npm run typecheck` | Executa checagem estrita de tipos (`tsc --noEmit`). |
-| `npm run lint` | Executa ESLint (incluindo teto de 350 linhas por módulo produtivo e proibição de `console.*` direto). |
-| `npm run test` / `npm run test:coverage` | Roda os testes unitários e de integração (`Vitest`) com relatório de cobertura (`>= 80%`). |
+| `npm run data:update` | Atualiza incrementalmente os 8 conectores oficiais (ANP, ANEEL, CMED, CONAB, SINAPI, DIEESE, BCB, NFC-e). |
+| `npm run data:backfill` | Reconstrói as séries de 2026 (use `-- --full-year` para incluir histórico desde Jan/2026 em ANP/PROHORT). |
+| `npm run data:aneel-map` | Regenera `public/geo/aneel-municipality-distributors.json` (~5.568 municípios IBGE <-> distribuidoras). |
+| `npm run data:geo` | Baixa/regenera malhas territoriais IBGE com correção de *winding order*. |
+| `npm run typecheck` | Executa `tsc --noEmit`. |
+| `npm run lint` | Executa ESLint (`max-lines <= 350`, `no-console`). |
+| `npm run test` / `npm run test:coverage` | Executa os testes unitários e de integração (`Vitest`) com meta `>= 80%`. |
 | `npm run build` | Gera o bundle de produção em `dist/`. |
 
 ---
 
-## Publicação na Vercel & Rotina Diária
+## Estrutura & Automação Contínua (GitHub Actions → Vercel)
 
-1. Importe o repositório `djcristianosgp/preco-brasil` no painel da **Vercel** (`Framework Preset: Vite`, já configurado em [vercel.json](./vercel.json)).
-2. No GitHub, certifique-se de que **Actions** esteja habilitado em *Settings → Actions → General* com permissão de leitura e escrita para `GITHUB_TOKEN` (`permissions: contents: write` já declarada em [daily-price-update.yml](./.github/workflows/daily-price-update.yml)).
-3. Todos os dias às **06:00 (horário de Brasília)** o workflow executará `npm run data:update`, validará testes e build, e fará commit em `public/data/` caso haja novas coletas da ANP — disparando automaticamente um novo deploy versionado na Vercel. Você também pode disparar manualmente via **Actions → Run workflow** (inclusive com opção `backfill: true`).
+Consulte [`docs/DATA-SOURCES-ARCHITECTURE.md`](./docs/DATA-SOURCES-ARCHITECTURE.md) para os contratos completos e [`.agents/skills/atualizar-precos-diarios/SKILL.md`](./.agents/skills/atualizar-precos-diarios/SKILL.md) para o manual operacional automatizado.
 
----
-
-## Estrutura do Projeto
-
-```text
-preco-brasil/
-├── .agents/skills/
-│   └── atualizar-precos-diarios/   # Skill portátil de IA para rotina de atualização e auditoria de preços
-├── .github/workflows/
-│   └── daily-price-update.yml      # Automação diária às 06:00 BRT
-├── docs/
-│   └── DATA-SOURCES-ARCHITECTURE.md
-├── public/
-│   ├── data/
-│   │   ├── catalog.json            # Catálogo de itens e códigos ANP/NCM/EAN
-│   │   ├── manifest.json           # Metadados e versão ativa (YYYY.MM.DD.N)
-│   │   ├── latest.json             # Médias atuais Brasil, 27 UFs e municípios
-│   │   ├── history/by-item/        # Série diária por item (Brasil + UFs)
-│   │   ├── history/by-state/       # Série diária municipal por UF (lazy-loaded)
-│   │   └── snapshots/              # Histórico de versões publicadas
-│   └── geo/
-│       ├── brazil-states.json      # Malha IBGE das 27 UFs (winding order corrigido)
-│       ├── ibge-municipalities-index.json
-│       └── states/{UF}.json        # Malhas municipais dos 27 estados
-├── scripts/
-│   ├── fetch-ibge-geo.mjs
-│   ├── update-prices.mjs
-│   └── lib/anp-csv-parser.mjs
-└── src/
-    ├── components/                 # Mapa, itens, ranking, gráficos Recharts, código de barras e modais
-    ├── hooks/                      # Estado de exploração, drilldown e SEO dinâmico
-    ├── services/                   # Carregamento em cache + consulta Open Food Facts Brasil
-    ├── types/                      # Contratos TypeScript estritos
-    └── utils/                      # Formatação BRL, escala coroplética, GTIN Mod-10 e geoWinding
-```
+Todo dia às **06:00 BRT (`0 9 * * *` UTC)**, o workflow [`.github/workflows/daily-price-update.yml`](./.github/workflows/daily-price-update.yml) executa `npm run data:update`, valida `typecheck + lint + test + build` e publica o novo snapshot versionado (`vYYYY.MM.DD.N`) na `main` para deploy automático na **Vercel**.
 
 ---
 
-## Skill de IA Incluída no Repositório
-
-Este repositório acompanha uma **Agent Skill** versionada em [`.agents/skills/atualizar-precos-diarios/SKILL.md`](./.agents/skills/atualizar-precos-diarios/SKILL.md) para que agentes de IA (Antigravity, Claude Code, Codex, etc.) executem com segurança e determinismo a atualização diária dos preços, adição de novos itens ao catálogo, backfill histórico, auditoria das métricas e rollback caso ocorram falhas nas fontes oficiais.
-
----
-
-## Roadmap Aberto & Contribuições
-
-- [ ] Conectores estaduais de **NFC-e / SEFAZ** (*Menor Preço PR/RS*, *Economiza Alagoas*, *Preço da Hora BA*) para itens de supermercado com GTIN.
-- [ ] Inclusão de séries de **Cesta Básica (DIEESE)** e **Hortifrúti Atacado (CONAB/PROHORT)**.
-- [ ] Exportação de comparativos e relatórios em CSV/PDF.
-
-Contribuições são bem-vindas via **Issues** e **Pull Requests**:
-1. Faça um fork do projeto e crie uma branch descritiva (`feat/novo-conector-sefaz`).
-2. Garanta que `npm run typecheck`, `npm run lint`, `npm run test:coverage` e `npm run build` passem sem erros.
-3. Abra seu Pull Request explicando o contexto e a fonte oficial dos dados adicionados.
-
----
-
-## Fontes de Dados & Licença
-
-- **Preços de Combustíveis e GLP**: [Dados Abertos da ANP](https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis)
-- **Malhas Territoriais e Municípios**: [API de Serviços do IBGE (v1 / v3)](https://servicodados.ibge.gov.br/api/docs)
-- **Consulta de Produtos por Código de Barras**: [Open Food Facts Brasil](https://br.openfoodfacts.org/)
+## Licença
 
 Distribuído sob a licença **[MIT](./LICENSE)**.

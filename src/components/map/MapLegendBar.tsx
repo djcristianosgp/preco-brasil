@@ -1,3 +1,4 @@
+import type { GeoLevel } from '@/types/pricing';
 import type { LegendStop } from '@/utils/colorScale';
 
 interface MapLegendBarProps {
@@ -5,6 +6,7 @@ interface MapLegendBarProps {
   stops: LegendStop[];
   isStateZoom: boolean;
   citiesCount: number;
+  geoLevel?: GeoLevel;
 }
 
 export function MapLegendBar({
@@ -12,7 +14,14 @@ export function MapLegendBar({
   stops,
   isStateZoom,
   citiesCount,
+  geoLevel = 'city',
 }: MapLegendBarProps) {
+  const hint = !isStateZoom
+    ? 'Toque em um estado para desmembrar os municípios'
+    : geoLevel === 'state'
+      ? 'Índice oficial estadual (aplicável a toda a UF)'
+      : `${citiesCount} municípios monitorados — toque para detalhar`;
+
   return (
     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -33,11 +42,7 @@ export function MapLegendBar({
           </span>
         ))}
       </div>
-      <p className="text-[11px] text-muted-foreground">
-        {isStateZoom
-          ? `${citiesCount} municípios com coleta ANP — toque para detalhar`
-          : 'Toque em um estado para desmembrar os municípios'}
-      </p>
+      <p className="text-[11px] text-muted-foreground">{hint}</p>
     </div>
   );
 }

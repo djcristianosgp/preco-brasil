@@ -32,6 +32,23 @@ describe('App integration flow', () => {
         if (s.includes('history/by-item/')) return new Response(JSON.stringify(FIXTURE_ITEM_HISTORY));
         if (s.includes('history/by-state/SP.json'))
           return new Response(JSON.stringify(FIXTURE_STATE_HISTORY));
+        if (s.includes('latest/by-state/SP.json'))
+          return new Response(
+            JSON.stringify({ uf: 'SP', name: 'São Paulo', cities: FIXTURE_LATEST.states.SP.cities }),
+          );
+        if (s.includes('macro/dolar-ptax.json'))
+          return new Response(
+            JSON.stringify({
+              seriesId: 1,
+              name: 'Dólar PTAX',
+              sourceName: 'BCB',
+              unit: 'R$/USD',
+              latestDate: '2026-11-13',
+              latestRate: 5.95,
+              changePct: 0.1,
+              points: [{ date: '2026-11-13', rate: 5.95 }],
+            }),
+          );
         if (s.includes('snapshots/index.json'))
           return new Response(JSON.stringify({ snapshots: FIXTURE_SNAPSHOTS }));
         return new Response('Not found', { status: 404 });

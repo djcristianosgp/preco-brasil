@@ -8,6 +8,9 @@
       "categoryLabel": "Combustíveis Automotivos",
       "unit": "R$/L",
       "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 320102001",
       "anpCode": "320102001",
       "ncm": "27101259",
       "barcodes": [
@@ -34,6 +37,9 @@
       "categoryLabel": "Combustíveis Automotivos",
       "unit": "R$/L",
       "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 810101001",
       "anpCode": "810101001",
       "ncm": "22071090",
       "barcodes": [
@@ -60,6 +66,9 @@
       "categoryLabel": "Combustíveis Automotivos",
       "unit": "R$/L",
       "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 820101034",
       "anpCode": "820101034",
       "ncm": "27101921",
       "barcodes": [
@@ -85,6 +94,9 @@
       "categoryLabel": "Combustíveis Automotivos",
       "unit": "R$/L",
       "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 820101012",
       "anpCode": "820101012",
       "ncm": "27101921",
       "barcodes": [
@@ -109,6 +121,9 @@
       "categoryLabel": "Combustíveis Automotivos",
       "unit": "R$/L",
       "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 320102002",
       "anpCode": "320102002",
       "ncm": "27101259",
       "barcodes": [
@@ -127,13 +142,73 @@
       "priority": 5
     },
     {
+      "id": "gnv",
+      "name": "Gás Natural Veicular (GNV)",
+      "shortName": "GNV",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/m³",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 220101005",
+      "anpCode": "220101005",
+      "ncm": "27112100",
+      "barcodes": [
+        "220101005",
+        "27112100",
+        "7890002201011"
+      ],
+      "aliases": [
+        "gnv",
+        "gas natural",
+        "gas veicular"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": false,
+      "priority": 6
+    },
+    {
+      "id": "energia-residencial-b1",
+      "name": "Energia Elétrica Residencial (B1)",
+      "shortName": "Energia B1",
+      "category": "energia",
+      "categoryLabel": "Energia & Gás",
+      "unit": "R$/kWh",
+      "decimals": 3,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "ANEEL B1",
+      "anpCode": "ANEEL-B1",
+      "ncm": "27160000",
+      "barcodes": [
+        "27160000",
+        "7890002716009"
+      ],
+      "aliases": [
+        "energia",
+        "luz",
+        "energia eletrica",
+        "kwh",
+        "tarifa b1",
+        "aneel",
+        "conta de luz"
+      ],
+      "sourceName": "ANEEL — Tarifas Homologadas (B1 Convencional) + Bandeiras",
+      "featured": true,
+      "priority": 7
+    },
+    {
       "id": "glp-13kg",
       "name": "Gás de Cozinha (GLP 13 kg)",
       "shortName": "GLP 13 kg",
       "category": "energia",
-      "categoryLabel": "Gás & Energia",
+      "categoryLabel": "Energia & Gás",
       "unit": "R$/13kg",
       "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "ANP 210203001",
       "anpCode": "210203001",
       "ncm": "27111910",
       "barcodes": [
@@ -149,32 +224,694 @@
         "gas glp"
       ],
       "sourceName": "ANP — Levantamento de Preços de GLP",
-      "featured": false,
-      "priority": 6
+      "featured": true,
+      "priority": 8
     },
     {
-      "id": "gnv",
-      "name": "Gás Natural Veicular (GNV)",
-      "shortName": "GNV",
-      "category": "combustiveis",
-      "categoryLabel": "Combustíveis Automotivos",
-      "unit": "R$/m³",
+      "id": "cesta-basica-total",
+      "name": "Cesta Básica Nacional (Gasto Mensal)",
+      "shortName": "Cesta Básica",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/mês",
       "decimals": 2,
-      "anpCode": "220101005",
-      "ncm": "27112100",
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "DIEESE CB-01",
+      "anpCode": "DIEESE-01",
+      "ncm": "10063021",
       "barcodes": [
-        "220101005",
-        "27112100",
-        "7890002201011"
+        "7890009001001"
       ],
       "aliases": [
-        "gnv",
-        "gas natural",
-        "gas veicular"
+        "cesta basica",
+        "dieese",
+        "cesta nacional",
+        "alimentacao"
       ],
-      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "sourceName": "DIEESE — Pesquisa Nacional da Cesta Básica",
+      "featured": true,
+      "priority": 9
+    },
+    {
+      "id": "alimento-arroz",
+      "name": "Arroz Agulhinha Tipo 1 (Cesta)",
+      "shortName": "Arroz",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 10063021",
+      "anpCode": "DIEESE-05",
+      "ncm": "10063021",
+      "barcodes": [
+        "10063021",
+        "7890009001056"
+      ],
+      "aliases": [
+        "arroz",
+        "arroz tipo 1",
+        "arroz agulhinha"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
+      "featured": true,
+      "priority": 10
+    },
+    {
+      "id": "alimento-feijao",
+      "name": "Feijão Carioca / Preto (Cesta)",
+      "shortName": "Feijão",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 07133399",
+      "anpCode": "DIEESE-04",
+      "ncm": "07133399",
+      "barcodes": [
+        "07133399",
+        "7890009001049"
+      ],
+      "aliases": [
+        "feijao",
+        "feijao carioca",
+        "feijao preto"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
+      "featured": true,
+      "priority": 11
+    },
+    {
+      "id": "alimento-carne",
+      "name": "Carne Bovina de 1ª (Cesta)",
+      "shortName": "Carne Bovina",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 02013000",
+      "anpCode": "DIEESE-02",
+      "ncm": "02013000",
+      "barcodes": [
+        "02013000",
+        "7890009001025"
+      ],
+      "aliases": [
+        "carne",
+        "carne bovina",
+        "coxao mole",
+        "acougue"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
+      "featured": true,
+      "priority": 12
+    },
+    {
+      "id": "alimento-leite",
+      "name": "Leite Integral UHT (Cesta)",
+      "shortName": "Leite",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/L",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 04012010",
+      "anpCode": "DIEESE-03",
+      "ncm": "04012010",
+      "barcodes": [
+        "04012010",
+        "7890009001032"
+      ],
+      "aliases": [
+        "leite",
+        "leite integral",
+        "laticinios"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
       "featured": false,
-      "priority": 7
+      "priority": 13
+    },
+    {
+      "id": "alimento-cafe",
+      "name": "Café Torrado e Moído (Cesta)",
+      "shortName": "Café",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 09012100",
+      "anpCode": "DIEESE-10",
+      "ncm": "09012100",
+      "barcodes": [
+        "09012100",
+        "7890009001100"
+      ],
+      "aliases": [
+        "cafe",
+        "cafe em po",
+        "cafe torrado"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
+      "featured": true,
+      "priority": 14
+    },
+    {
+      "id": "alimento-oleo",
+      "name": "Óleo de Soja (900 mL)",
+      "shortName": "Óleo Soja",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/900ml",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 15079011",
+      "anpCode": "DIEESE-13",
+      "ncm": "15079011",
+      "barcodes": [
+        "15079011",
+        "7890009001131"
+      ],
+      "aliases": [
+        "oleo",
+        "oleo de soja",
+        "oleo cozinha"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
+      "featured": false,
+      "priority": 15
+    },
+    {
+      "id": "alimento-acucar",
+      "name": "Açúcar Refinado / Cristal (Cesta)",
+      "shortName": "Açúcar",
+      "category": "cesta-basica",
+      "categoryLabel": "Cesta Básica (DIEESE)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "city",
+      "codeLabel": "NCM 17019900",
+      "anpCode": "DIEESE-12",
+      "ncm": "17019900",
+      "barcodes": [
+        "17019900",
+        "7890009001124"
+      ],
+      "aliases": [
+        "acucar",
+        "acucar cristal",
+        "acucar refinado"
+      ],
+      "sourceName": "DIEESE — Preço Médio em Capitais",
+      "featured": false,
+      "priority": 16
+    },
+    {
+      "id": "ceasa-tomate",
+      "name": "Tomate (Atacado CEASA)",
+      "shortName": "Tomate",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB TOMATE",
+      "anpCode": "PROHORT-TOMATE",
+      "ncm": "07020000",
+      "barcodes": [
+        "07020000"
+      ],
+      "aliases": [
+        "tomate",
+        "ceasa tomate",
+        "hortifruti"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": true,
+      "priority": 17
+    },
+    {
+      "id": "ceasa-batata",
+      "name": "Batata (Atacado CEASA)",
+      "shortName": "Batata",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB BATATA",
+      "anpCode": "PROHORT-BATATA",
+      "ncm": "07019000",
+      "barcodes": [
+        "07019000"
+      ],
+      "aliases": [
+        "batata",
+        "batata inglesa",
+        "ceasa batata"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": true,
+      "priority": 18
+    },
+    {
+      "id": "ceasa-cebola",
+      "name": "Cebola (Atacado CEASA)",
+      "shortName": "Cebola",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB CEBOLA",
+      "anpCode": "PROHORT-CEBOLA",
+      "ncm": "07031019",
+      "barcodes": [
+        "07031019"
+      ],
+      "aliases": [
+        "cebola",
+        "ceasa cebola"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": true,
+      "priority": 19
+    },
+    {
+      "id": "ceasa-banana-prata",
+      "name": "Banana Prata (Atacado CEASA)",
+      "shortName": "Banana Prata",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB BANANA",
+      "anpCode": "PROHORT-BANANA",
+      "ncm": "08039000",
+      "barcodes": [
+        "08039000"
+      ],
+      "aliases": [
+        "banana",
+        "banana prata",
+        "frutas"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": true,
+      "priority": 20
+    },
+    {
+      "id": "ceasa-laranja-pera",
+      "name": "Laranja Pera (Atacado CEASA)",
+      "shortName": "Laranja Pera",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB LARANJA",
+      "anpCode": "PROHORT-LARANJA",
+      "ncm": "08051000",
+      "barcodes": [
+        "08051000"
+      ],
+      "aliases": [
+        "laranja",
+        "laranja pera",
+        "citricos"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": false,
+      "priority": 21
+    },
+    {
+      "id": "ceasa-cenoura",
+      "name": "Cenoura (Atacado CEASA)",
+      "shortName": "Cenoura",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB CENOURA",
+      "anpCode": "PROHORT-CENOURA",
+      "ncm": "07061000",
+      "barcodes": [
+        "07061000"
+      ],
+      "aliases": [
+        "cenoura",
+        "legumes",
+        "hortifruti"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": false,
+      "priority": 22
+    },
+    {
+      "id": "ceasa-maca",
+      "name": "Maçã (Atacado CEASA)",
+      "shortName": "Maçã",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB MACA",
+      "anpCode": "PROHORT-MACA",
+      "ncm": "08081000",
+      "barcodes": [
+        "08081000"
+      ],
+      "aliases": [
+        "maca",
+        "maçã",
+        "frutas"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": false,
+      "priority": 23
+    },
+    {
+      "id": "ceasa-alho",
+      "name": "Alho (Atacado CEASA)",
+      "shortName": "Alho",
+      "category": "hortifruti",
+      "categoryLabel": "Hortifrúti Atacado (CONAB)",
+      "unit": "R$/kg",
+      "decimals": 2,
+      "cadence": "daily",
+      "geoLevel": "city",
+      "codeLabel": "CONAB ALHO",
+      "anpCode": "PROHORT-ALHO",
+      "ncm": "07032090",
+      "barcodes": [
+        "07032090"
+      ],
+      "aliases": [
+        "alho",
+        "temperos",
+        "ceasa alho"
+      ],
+      "sourceName": "CONAB — PROHORT Cotação Diária (CEASAs)",
+      "featured": false,
+      "priority": 24
+    },
+    {
+      "id": "med-dorflex",
+      "name": "Dorflex Gotas 20 mL (PMC Teto)",
+      "shortName": "Dorflex",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/un",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7891058009458",
+      "anpCode": "7891058009458",
+      "ncm": "30049099",
+      "barcodes": [
+        "7891058009458"
+      ],
+      "aliases": [
+        "dorflex",
+        "dipirona",
+        "orfenadrina",
+        "analgesico"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": true,
+      "priority": 25
+    },
+    {
+      "id": "med-losartana",
+      "name": "Losartana Potássica 50mg c/ 30 (PMC)",
+      "shortName": "Losartana",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/cx",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7891317427542",
+      "anpCode": "7891317427542",
+      "ncm": "30049069",
+      "barcodes": [
+        "7891317427542"
+      ],
+      "aliases": [
+        "losartana",
+        "hipertensao",
+        "pressao alta",
+        "remedio"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": true,
+      "priority": 26
+    },
+    {
+      "id": "med-metformina",
+      "name": "Glifage Metformina 850mg c/ 30 (PMC)",
+      "shortName": "Glifage 850",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/cx",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7891721027437",
+      "anpCode": "7891721027437",
+      "ncm": "30049099",
+      "barcodes": [
+        "7891721027437"
+      ],
+      "aliases": [
+        "metformina",
+        "glifage",
+        "diabetes"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": true,
+      "priority": 27
+    },
+    {
+      "id": "med-omeprazol",
+      "name": "Omeprazol 10mg c/ 14 Cápsulas (PMC)",
+      "shortName": "Omeprazol",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/cx",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7896004701998",
+      "anpCode": "7896004701998",
+      "ncm": "30049069",
+      "barcodes": [
+        "7896004701998"
+      ],
+      "aliases": [
+        "omeprazol",
+        "estomago",
+        "gastrite"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": true,
+      "priority": 28
+    },
+    {
+      "id": "med-amoxicilina",
+      "name": "Amoxicilina 50mg/mL Susp. 150 mL (PMC)",
+      "shortName": "Amoxicilina",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/fr",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7891317001568",
+      "anpCode": "7891317001568",
+      "ncm": "30041011",
+      "barcodes": [
+        "7891317001568"
+      ],
+      "aliases": [
+        "amoxicilina",
+        "antibiotico"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": false,
+      "priority": 29
+    },
+    {
+      "id": "med-neosaldina",
+      "name": "Neosaldina Gotas (PMC Teto)",
+      "shortName": "Neosaldina",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/fr",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7896094999985",
+      "anpCode": "7896094999985",
+      "ncm": "30049099",
+      "barcodes": [
+        "7896094999985"
+      ],
+      "aliases": [
+        "neosaldina",
+        "dor de cabeca",
+        "enxaqueca"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": false,
+      "priority": 30
+    },
+    {
+      "id": "med-advil",
+      "name": "Advil 12h Ibuprofeno 600mg c/ 6 (PMC)",
+      "shortName": "Advil 12h",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/cx",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7896015592752",
+      "anpCode": "7896015592752",
+      "ncm": "30049039",
+      "barcodes": [
+        "7896015592752"
+      ],
+      "aliases": [
+        "advil",
+        "ibuprofeno",
+        "antiinflamatorio"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": false,
+      "priority": 31
+    },
+    {
+      "id": "med-sinvastatina",
+      "name": "Sinvastatina 10mg c/ 30 Comprimidos (PMC)",
+      "shortName": "Sinvastatina",
+      "category": "medicamentos",
+      "categoryLabel": "Medicamentos (ANVISA CMED)",
+      "unit": "R$/cx",
+      "decimals": 2,
+      "cadence": "regulated",
+      "geoLevel": "state",
+      "codeLabel": "EAN 7897595601766",
+      "anpCode": "7897595601766",
+      "ncm": "30049069",
+      "barcodes": [
+        "7897595601766"
+      ],
+      "aliases": [
+        "sinvastatina",
+        "sinvastacor",
+        "colesterol"
+      ],
+      "sourceName": "ANVISA / CMED — Preço Máximo ao Consumidor (PMC)",
+      "featured": false,
+      "priority": 32
+    },
+    {
+      "id": "sinapi-custo-m2",
+      "name": "SINAPI — Custo Médio m² Construção Civil",
+      "shortName": "Custo m²",
+      "category": "construcao",
+      "categoryLabel": "Construção Civil (SINAPI)",
+      "unit": "R$/m²",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "state",
+      "codeLabel": "IBGE 2296/48",
+      "anpCode": "SINAPI-48",
+      "ncm": "68109900",
+      "barcodes": [
+        "68109900"
+      ],
+      "aliases": [
+        "sinapi",
+        "construcao",
+        "metro quadrado",
+        "obra",
+        "custo m2"
+      ],
+      "sourceName": "IBGE — SINAPI (Agregado 2296)",
+      "featured": true,
+      "priority": 33
+    },
+    {
+      "id": "sinapi-materiais-m2",
+      "name": "SINAPI — Materiais de Construção (m²)",
+      "shortName": "Materiais m²",
+      "category": "construcao",
+      "categoryLabel": "Construção Civil (SINAPI)",
+      "unit": "R$/m²",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "state",
+      "codeLabel": "IBGE 2296/2119",
+      "anpCode": "SINAPI-2119",
+      "ncm": "25232910",
+      "barcodes": [
+        "25232910"
+      ],
+      "aliases": [
+        "materiais construcao",
+        "cimento",
+        "sinapi materiais"
+      ],
+      "sourceName": "IBGE — SINAPI (Agregado 2296)",
+      "featured": true,
+      "priority": 34
+    },
+    {
+      "id": "sinapi-mao-obra-m2",
+      "name": "SINAPI — Mão de Obra na Construção (m²)",
+      "shortName": "Mão de Obra m²",
+      "category": "construcao",
+      "categoryLabel": "Construção Civil (SINAPI)",
+      "unit": "R$/m²",
+      "decimals": 2,
+      "cadence": "monthly",
+      "geoLevel": "state",
+      "codeLabel": "IBGE 2296/2120",
+      "anpCode": "SINAPI-2120",
+      "ncm": "99990000",
+      "barcodes": [
+        "99990000"
+      ],
+      "aliases": [
+        "mao de obra",
+        "pedreiro",
+        "sinapi mao de obra"
+      ],
+      "sourceName": "IBGE — SINAPI (Agregado 2296)",
+      "featured": true,
+      "priority": 35
     }
   ]
 }

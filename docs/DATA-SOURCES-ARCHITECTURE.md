@@ -1,43 +1,33 @@
-# Arquitetura de Fontes Reais de Preços no Brasil — PreçoBrasil
+# Arquitetura de Fontes Reais de Preços no Brasil (3 Ondas) — PreçoBrasil
 
-Este documento registra a análise técnica comparativa das fontes oficiais e abertas de preços no Brasil e justifica a arquitetura adotada no **PreçoBrasil** para garantir **dados reais diários**, **cobertura nacional por Estado e Município**, **busca por código de barras (GTIN/EAN/ANP)**, **zero custos de infraestrutura** e **deploy contínuo na Vercel via JSON versionado**.
-
----
-
-## 1. Matriz Comparativa das Fontes Pesquisadas
-
-| Tier | Fonte | Itens Cobertos | Granularidade | Frequência Real | Acesso / Licenciamento | Decisão |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Tier 1 (Ativo)** | **ANP — Dados Abertos (LPC)** | Gasolina Comum, Etanol Hidratado, Diesel S10, Diesel Comum, Gasolina Aditivada, GLP 13kg, GNV | Nacional, 27 UFs, 417+ Municípios e Postos (CNPJ/CEP) | Coleta diária (seg–sáb); consolidação semanal + CSVs mensais (`dsan/2026/`) e `ultimas-4-semanas-*.csv` | Aberto, gratuito, sem API key (HTTP GET em `gov.br/anp`) | **Adotado como motor primário** |
-| **Tier 1 (Ativo)** | **IBGE Malhas v3 & Localidades v1** | Geometria oficial de 27 UFs e 5.571 municípios | Polígonos GeoJSON simplificados + códigos IBGE de 7 dígitos | Estável (atualização anual de malhas) | Aberto, gratuito (`servicodados.ibge.gov.br`) | **Adotado e pré-cacheado em `public/geo/`** |
-| **Tier 2 (Expansão)** | **Portais SEFAZ NFC-e Estaduais** (*Nota Paraná / Menor Preço*, *Economiza Alagoas*, *Preço da Hora BA*, *Menor Preço RS*) | Varejo geral, supermercados, farmácias, combustíveis com GTIN real da nota | Posto/Loja por município | Tempo real / diário | Fragmentado por UF; várias UFs exigem credenciamento, token de app móvel ou possuem bloqueio anti-bot | **Preparado no catálogo e lookup GTIN para expansão por conector estadual** |
-| **Tier 3 (Macro)** | **IBGE IPCA/SNIPC, CONAB PROHORT, DIEESE** | Índices de inflação, atacado hortifrúti (CEASAs), cesta básica | Regiões metropolitanas / capitais | Mensal ou semanal | Aberto (`apisidra.ibge.gov.br`, CONAB) | **Adequado para fase futura de varejo/hortifrúti sem GTIN** |
-| **Tier 4 (GTIN)** | **Open Food Facts Brasil (`br.openfoodfacts.org`)** | Produtos embalados com código de barras EAN-8 / EAN-13 / GTIN-14 | Catálogo nacional/global de varejo | Contínuo (API REST v2) | Aberto, gratuito, CORS habilitado | **Ativo na busca ao vivo por código de barras quando GTIN não está na cesta monitorada** |
-| **Tier 4 (Fiscal)** | **SEFAZ CCG / GS1 Brasil / Cosmos Bluesoft** | Descrição fiscal oficial, NCM, CEST, imagem de GTIN | Nacional | Tempo real | Requer certificado digital e-CNPJ ou assinatura comercial | **Documentado para integração backend futura caso o produto escaneado exija NCM oficial** |
+Este documento registra a arquitetura completa das **8 fontes oficiais integradas** no **PreçoBrasil**, cobrindo as **3 Ondas de Expansão** sobre uma infraestrutura estática versionada em JSON (custo zero de banco de dados, CDN global na Vercel e atualização diária automatizada às **06:00 BRT**).
 
 ---
 
-## 2. Estratégia de Atualização Diária em JSON Versionado (Vercel)
+## 1. Matriz Completa das Fontes Integradas
 
-Em vez de manter banco de dados gerenciado pago ou fazer scraping pesado no runtime do usuário:
-
-1. **Snapshot Estático Versionado**:
-   - Todo dia às **06:00 BRT (`09:00 UTC`)**, o GitHub Actions executa `npm run data:update`.
-   - O script baixa os 3 CSVs oficiais `ultimas-4-semanas-*.csv` da ANP, mescla novos registros diários ao histórico existente em `public/data/history/`, recalcula médias nacionais, estaduais e municipais e gera um novo `dataVersion` (`YYYY.MM.DD.N`) em `public/data/manifest.json` além de um registro imutável em `public/data/snapshots/YYYY-MM-DD.json`.
-2. **Deploy Automático na Vercel**:
-   - Quando há novas coletas, o workflow realiza commit em `public/data/` e `git push` para a branch `main`.
-   - A Vercel detecta o push e publica automaticamente uma nova versão estática com **CDN global**, rollback instantâneo por commit e zero cold-start.
-3. **Janela Ativa vs Série Diária**:
-   - A ANP coleta postos em municípios diferentes de segunda a sábado. Portanto, um único dia isolado não cobre todos os 417+ municípios simultaneamente.
-   - Para garantir estabilidade estatística no mapa (27 UFs e ~417 municípios sempre preenchidos), `latest.json` calcula as médias sobre a **janela ativa dos últimos 7 dias disponíveis** e compara com os **7 dias imediatamente anteriores** (`previousAvg` e `changePct`).
-   - Simultaneamente, `history/by-item/{itemId}.json` e `history/by-state/{UF}.json` preservam **cada data diária real** (`avg` do dia + `avg7d` média móvel de 7 dias), permitindo acompanhar a evolução diária completa no gráfico.
+| Onda | Fonte Oficial | Escopo & Itens | Cobertura Territorial | Cadência & Atualização | Armazenamento no Repositório |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **Base** | **ANP — Levantamento de Preços de Combustíveis (LPC)** | Gasolina Comum, Etanol, Diesel S10, Diesel Comum, Gasolina Aditivada, GLP 13kg, GNV | Brasil, **27 UFs** e **~418 municípios** | Diária (seg–sáb) via CSVs móveis + históricos mensais 2026 | `latest.json` + `latest/by-state/{UF}.json` + `history/` |
+| **Onda 1** | **ANVISA / CMED — Preço Máximo ao Consumidor (PMC)** | 8 fármacos populares no catálogo + **10.831 medicamentos EAN-13 comerciais** | **27 UFs** mapeadas às alíquotas modais de ICMS (17% a 23%) | Tabela oficial CMED parseada em **100 shards** (`public/data/cmed/{00..99}.json`) | Shards `cmed/{00..99}.json` + séries estaduais dos 8 itens |
+| **Onda 1** | **ANEEL — Dados Abertos (B1 + Bandeiras Tarifárias)** | Tarifa Residencial B1 (`R$/kWh`) + adicional mensal de Bandeira Tarifária | Brasil, **27 UFs** e **5.510 municípios IBGE** (~99% do território!) | Mensal por distribuidora (CKAN `datastore_search` + mapa `aneel-municipality-distributors.json`) | `latest/by-state/{UF}.json` + `history/` + `manifest.energyFlag` |
+| **Onda 1** | **CONAB / PROHORT — CEASAs** | Tomate, Batata, Cebola, Banana Prata, Laranja Pera, Cenoura, Maçã, Alho (`R$/kg`) | **20 UFs / 42 municípios** com entrepostos CEASA | Diária via streaming de `ProhortDiario.txt` (`latin1`) | `latest/by-state/{UF}.json` + `history/` |
+| **Onda 2** | **IBGE / SINAPI — Agregado 2296** | Custo Médio m² Total, Materiais (m²) e Mão de Obra (m²) na Construção Civil | Brasil + **27 UFs** | Mensal via API de Agregados IBGE v3 (`variaveis 48\|2119\|2120`) | `latest.json` + `history/by-item/` |
+| **Onda 2** | **DIEESE — Cesta Básica Nacional** | Gasto Mensal da Cesta + Arroz, Feijão, Carne, Leite, Café, Óleo de Soja, Açúcar | **27 Capitais estaduais / UFs** | Mensal via endpoint oficial `dieese.org.br/cesta/produto` (`tipoDado=4/5`) | `latest/by-state/{UF}.json` + `history/` |
+| **Onda 2** | **Banco Central — Dólar PTAX Diário (SGS 1)** | Série cambial diária `R$/USD` (2026) | Nacional (macro) | Diária (pregões úteis BCB) | `public/data/macro/dolar-ptax.json` (eixo comparativo no gráfico) |
+| **Onda 3** | **Open Food Facts + Auditor NFC-e (ENCAT v2)** | Leitura/validação de QR Code NFC-e e chave de 44 dígitos (Módulo 11 + CNPJ) + lookup GTIN v2 | Nacional (consulta direta SEFAZ estadual + contribuição Open Data) | Sob demanda no navegador + ingestão auditada | `public/data/community-nfce.json` + links para Issues `price-submission` |
 
 ---
 
-## 3. Pegadinhas Conhecidas da ANP e IBGE Tratadas no Parser
+## 2. Decisões Críticas de Escalabilidade (Vercel & Mobile)
 
-1. **Bloqueio de `HTTP HEAD`**: O WAF do `gov.br` retorna `403 Forbidden` em requisições `HEAD` e o IBGE retorna `405`. Todas as chamadas usam `GET` com `User-Agent` explícito.
-2. **CSV com `;` dentro de campos entre aspas**: Os CSVs da ANP possuem endereços e complementos com `;` entre aspas. O parser implementa leitura RFC-4180 caractere a caractere.
-3. **Nomenclatura inconsistente dos CSVs mensais da ANP**: O script `--backfill` lê o HTML oficial da página de Dados Abertos da ANP e descobre dinamicamente as URLs reais de `dsan/2026/`.
-4. **Match 100% ANP -> IBGE**: Remoção de apóstrofos (`'`, `` ` ``, `’`) antes da tokenização garante o casamento exato de casos como *Sant'Ana do Livramento (RS)*.
-5. **Deduplicação por `(data, cnpj, produto)`**: Evita contagem duplicada na sobreposição entre arquivos mensais e o arquivo móvel das últimas 4 semanas.
+1. **Divisão Estadual do Payload Atual (`latest.json` vs `latest/by-state/{UF}.json`)**:
+   - Com a ANEEL cobrindo **5.510 municípios**, incluir todos os nós municipais dentro do arquivo raiz `latest.json` inflaria o carregamento inicial mobile acima de 1 MB.
+   - Mantemos `latest.json` compacto (**~125 KB**, apenas Brasil + 27 UFs + contagens por item) e carregamos `latest/by-state/{UF}.json` sob demanda junto com a malha municipal quando o usuário clica em um estado.
+2. **Sharding Farmacêutico CMED pelo Sufixo de 2 Dígitos (`ean.slice(-2)`)**:
+   - Como mais de 96% dos códigos de barras no Brasil compartilham o prefixo GS1 `789`, um particionamento por prefixo concentraria 10.400 medicamentos em um único JSON.
+   - O particionamento por `ean.slice(-2)` distribui os **10.831 medicamentos** uniformemente em **100 arquivos** (`~27 KB` médios cada), resolvendo qualquer busca em farmácia em poucos milissegundos sem servidor backend.
+3. **Preservação Histórica por Cadência (`itemId`)**:
+   - Fontes diárias (`ANP`, `PROHORT`), mensais (`ANEEL`, `SINAPI`, `DIEESE`) e reguladas (`ANVISA/CMED`) convivem no mesmo orquestrador sem sobrescrever janelas umas das outras. Falhas temporárias em conectores secundários emitem `warning` no `manifest.json` e preservam o histórico existente.
+4. **Contribuição Auditada Sem Persistência Falsa**:
+   - Não gravamos preços submetidos pelo usuário apenas em `localStorage`. O **Auditor NFC-e** valida criptograficamente a estrutura ENCAT v2 (dígito verificador Módulo 11 + CNPJ + código IBGE da UF + portal SEFAZ estadual) e gera uma Issue estruturada auditável para o ledger `public/data/community-nfce.json`.

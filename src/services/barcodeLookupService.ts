@@ -1,6 +1,8 @@
+import { loadCmedShard } from '@/services/priceDataService';
 import type {
   BarcodeLookupResult,
   CatalogItem,
+  CmedShardRecord,
   ExternalBarcodeProduct,
 } from '@/types/pricing';
 import {
@@ -9,6 +11,7 @@ import {
   searchCatalogItems,
   validateGtinCheckDigit,
 } from '@/utils/barcode';
+import { expandCmedShardRecord } from '@/utils/cmedIcms';
 import { logger } from '@/utils/logger';
 
 interface OpenFoodFactsResponse {
@@ -22,6 +25,10 @@ interface OpenFoodFactsResponse {
     categories?: string;
     image_front_small_url?: string;
   };
+}
+
+function isValidCmedEntry(entry: CmedShardRecord | undefined): entry is CmedShardRecord {
+  return Boolean(entry && typeof entry.p === 'string' && Array.isArray(entry.pmc));
 }
 
 export async function lookupBarcodeOrProduct(
@@ -40,12 +47,14 @@ export async function lookupBarcodeOrProduct(
       isValidGtin: false,
       gtinFormat: 'TEXTO',
       catalogMatches: catalog,
+      cmedProduct: null,
       externalProduct: null,
       status: 'catalog-match',
       message: 'Exibindo todos os itens monitorados.',
     };
   }
 
+  // 1. Exact/textual match on monitored catalog (ANP, NCM, featured CMED, DIEESE, PROHORT)
   const catalogMatches = searchCatalogItems(catalog, query);
   if (catalogMatches.length > 0 && (gtinFormat !== 'EAN-13' || catalogMatches.length === 1)) {
     const exactMatch = catalogMatches.length === 1;
@@ -54,6 +63,7 @@ export async function lookupBarcodeOrProduct(
       isValidGtin,
       gtinFormat,
       catalogMatches,
+      cmedProduct: null,
       externalProduct: null,
       status: 'catalog-match',
       message: exactMatch
@@ -62,6 +72,26 @@ export async function lookupBarcodeOrProduct(
     };
   }
 
+  // 2. Local sharded ANVISA/CMED pharmacy EAN-13 index (~11.000 medicines)
+  if (/^\d{13}$/.test(cleanCode)) {
+    const shard = await loadCmedShard(cleanCode.slice(-2));
+    const entry = shard[cleanCode];
+    if (isValidCmedEntry(entry)) {
+      const cmedProduct = expandCmedShardRecord(cleanCode, entry);
+      return {
+        query,
+        isValidGtin,
+        gtinFormat,
+        catalogMatches,
+        cmedProduct,
+        externalProduct: null,
+        status: 'cmed-found',
+        message: `Medicamento localizado na tabela oficial ANVISA/CMED (PMC por UF disponível).`,
+      };
+    }
+  }
+
+  // 3. Live Open Food Facts Brasil v2 lookup for supermarket retail GTINs
   if (/^\d{8,14}$/.test(cleanCode)) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -93,10 +123,11 @@ export async function lookupBarcodeOrProduct(
           isValidGtin,
           gtinFormat,
           catalogMatches,
+          cmedProduct: null,
           externalProduct,
           status: 'external-found',
           message:
-            'Código de barras identificado na base nacional de varejo (pronto para futura ingestão via NFC-e estadual).',
+            'Código de barras identificado na base nacional de varejo (pronto para auditar com cupom NFC-e).',
         };
       }
     } catch (error) {
@@ -106,6 +137,7 @@ export async function lookupBarcodeOrProduct(
         isValidGtin,
         gtinFormat,
         catalogMatches,
+        cmedProduct: null,
         externalProduct: null,
         status: 'error',
         message: isValidGtin
@@ -122,6 +154,7 @@ export async function lookupBarcodeOrProduct(
     isValidGtin,
     gtinFormat,
     catalogMatches,
+    cmedProduct: null,
     externalProduct: null,
     status: 'not-found',
     message: isValidGtin

@@ -1,4 +1,4 @@
-import { Clock, Database, GitCommitHorizontal, X } from 'lucide-react';
+import { Clock, Database, GitCommitHorizontal, Pill, X } from 'lucide-react';
 import type { DataManifest, SnapshotIndexEntry } from '@/types/pricing';
 import { formatBRL, formatDateBR, formatIntegerBR } from '@/utils/formatters';
 
@@ -35,7 +35,7 @@ export function MethodologyModal({
               Arquitetura de Dados & Versões Diárias
             </h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Pipeline automatizado de atualização matinal (06:00 BRT) e publicação contínua na Vercel.
+              Pipeline automatizado multi-fonte às 06:00 BRT e publicação contínua na Vercel.
             </p>
           </div>
           <button
@@ -59,11 +59,11 @@ export function MethodologyModal({
             <div className="rounded-xl border border-border bg-surface-elevated p-2.5">
               <p className="text-[10px] text-muted-foreground">Série Histórica</p>
               <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
-                {manifest.totalDays} dias
+                {manifest.totalDays} datas
               </p>
             </div>
             <div className="rounded-xl border border-border bg-surface-elevated p-2.5">
-              <p className="text-[10px] text-muted-foreground">Coletas Processadas</p>
+              <p className="text-[10px] text-muted-foreground">Registros Auditados</p>
               <p className="tabular-nums mt-0.5 font-mono text-xs font-bold text-foreground">
                 {formatIntegerBR(manifest.totalSamplesProcessed)}
               </p>
@@ -71,21 +71,38 @@ export function MethodologyModal({
             <div className="rounded-xl border border-border bg-surface-elevated p-2.5">
               <p className="text-[10px] text-muted-foreground">Cobertura IBGE</p>
               <p className="mt-0.5 font-mono text-xs font-bold text-foreground">
-                {manifest.statesCovered} UFs / {manifest.citiesCovered} cid.
+                {manifest.statesCovered} UFs / {formatIntegerBR(manifest.citiesCovered)} cid.
               </p>
             </div>
           </div>
         )}
 
-        <div className="mt-4 space-y-2.5">
+        {(manifest?.cmedProductsIndexed || manifest?.energyFlag) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {manifest.cmedProductsIndexed ? (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-2.5 py-1 text-[11px] font-medium text-foreground">
+                <Pill className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+                {formatIntegerBR(manifest.cmedProductsIndexed)} EANs ANVISA/CMED indexados
+              </span>
+            ) : null}
+            {manifest.energyFlag && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-elevated px-2.5 py-1 text-[11px] font-medium text-foreground">
+                Bandeira ANEEL Vigente: <strong>{manifest.energyFlag.name}</strong> (
+                {formatDateBR(manifest.energyFlag.month)})
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 space-y-2">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Database className="h-3.5 w-3.5" />
-            <span>Fontes Oficiais Ativas</span>
+            <span>Fontes Oficiais Integradas</span>
           </h3>
           {(manifest?.sources || []).map((src) => (
             <div
               key={src.name}
-              className="rounded-xl border border-border bg-surface-elevated/60 p-3 text-xs"
+              className="rounded-xl border border-border bg-surface-elevated/60 p-2.5 text-xs"
             >
               <p className="font-semibold text-foreground">{src.name}</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">{src.cadence}</p>
@@ -99,12 +116,13 @@ export function MethodologyModal({
             <span>Como Funciona a Evolução Diária</span>
           </h3>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            A ANP realiza coletas em postos revendedores de segunda a sábado em diferentes
-            municípios. Para manter 100% das 27 UFs e ~417 municípios comparáveis no mapa sem
-            lacunas, os cartões atuais consolidam a <strong>janela ativa de 7 dias</strong> (
-            {manifest ? `${formatDateBR(manifest.activeWindowStart)} a ${formatDateBR(manifest.activeWindowEnd)}` : '—'}
-            ) comparada aos 7 dias anteriores, enquanto o gráfico de evolução exibe tanto a{' '}
-            <strong>coleta exata de cada dia</strong> quanto a <strong>média móvel de 7 dias</strong>.
+            Séries diárias (ANP e CONAB PROHORT) consolidam a{' '}
+            <strong>janela ativa de 7 dias</strong> (
+            {manifest
+              ? `${formatDateBR(manifest.activeWindowStart)} a ${formatDateBR(manifest.activeWindowEnd)}`
+              : '—'}
+            ), enquanto séries mensais/reguladas (ANEEL B1, DIEESE, IBGE SINAPI e ANVISA CMED)
+            exibem a competência vigente e variação frente ao mês anterior.
           </p>
         </div>
 
@@ -124,8 +142,10 @@ export function MethodologyModal({
                     v{snap.dataVersion} ({formatDateBR(snap.date)})
                   </span>
                   <span className="text-muted-foreground">
-                    Gas: {formatBRL(snap.nationalAverages['gasolina-comum'])} · Et:{' '}
-                    {formatBRL(snap.nationalAverages['etanol'])}
+                    Gas: {formatBRL(snap.nationalAverages['gasolina-comum'])} · B1:{' '}
+                    {snap.nationalAverages['energia-residencial-b1']
+                      ? formatBRL(snap.nationalAverages['energia-residencial-b1'], 3)
+                      : formatBRL(snap.nationalAverages['etanol'])}
                   </span>
                 </div>
               ))}

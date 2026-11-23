@@ -53,6 +53,10 @@ export function EntityDetailDrawer({
       ? ((currentMetric.avg - stateAvg) / stateAvg) * 100
       : null;
 
+  const relatedCatalog = catalog.filter(
+    (c) => Boolean(activeMetrics[c.id]) || c.category === item.category,
+  );
+
   return (
     <div
       role="dialog"
@@ -77,7 +81,7 @@ export function EntityDetailDrawer({
             <div className="mt-1 flex flex-wrap items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
               <span className="inline-flex items-center gap-1 rounded bg-surface-muted px-1.5 py-0.5">
                 <Barcode className="h-3 w-3" />
-                ANP {item.anpCode}
+                {item.codeLabel || `ANP ${item.anpCode}`}
               </span>
               <span>NCM {item.ncm}</span>
             </div>
@@ -120,9 +124,7 @@ export function EntityDetailDrawer({
                     )}
                     {formatVariation(currentMetric.changePct)}
                   </span>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    vs período anterior
-                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">vs período anterior</p>
                 </div>
               </div>
 
@@ -140,14 +142,14 @@ export function EntityDetailDrawer({
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Coletas</p>
+                  <p className="text-[10px] text-muted-foreground">Registros</p>
                   <p className="tabular-nums font-mono font-semibold text-foreground">
                     {formatIntegerBR(currentMetric.samples)}
                   </p>
                 </div>
               </div>
               <p className="mt-2 text-[10px] text-muted-foreground">
-                Última coleta oficial nesta localidade: {formatDateBR(currentMetric.lastDate)}
+                Última referência oficial nesta localidade: {formatDateBR(currentMetric.lastDate)}
               </p>
             </div>
 
@@ -182,10 +184,10 @@ export function EntityDetailDrawer({
 
             <div>
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Todos os Itens em {citySnapshot?.name || stateSnapshot?.uf || 'Brasil'}
+                Itens disponíveis em {citySnapshot?.name || stateSnapshot?.uf || 'Brasil'}
               </h4>
               <div className="space-y-1.5">
-                {catalog.map((catItem) => {
+                {relatedCatalog.map((catItem) => {
                   const m = activeMetrics[catItem.id];
                   return (
                     <button

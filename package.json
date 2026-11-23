@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "data:geo": "node scripts/fetch-ibge-geo.mjs",
+    "data:aneel-map": "node scripts/fetch-aneel-map.mjs",
     "data:update": "node scripts/update-prices.mjs",
     "data:backfill": "node scripts/update-prices.mjs --backfill"
   },

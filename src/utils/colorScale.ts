@@ -48,7 +48,7 @@ export interface LegendStop {
   max: number;
 }
 
-export function getLegendStops(domain: PriceDomain | null): LegendStop[] {
+export function getLegendStops(domain: PriceDomain | null, decimals = 2): LegendStop[] {
   if (!domain) return [];
   const span = domain.max - domain.min;
   const step = span / CHOROPLETH_PALETTE.length;
@@ -59,7 +59,7 @@ export function getLegendStops(domain: PriceDomain | null): LegendStop[] {
       color,
       min: start,
       max: end,
-      label: `${start.toFixed(2).replace('.', ',')}–${end.toFixed(2).replace('.', ',')}`,
+      label: `${start.toFixed(decimals).replace('.', ',')}–${end.toFixed(decimals).replace('.', ',')}`,
     };
   });
 }

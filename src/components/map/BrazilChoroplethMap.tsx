@@ -4,6 +4,7 @@ import { MapHeaderBar } from '@/components/map/MapHeaderBar';
 import { MapLegendBar } from '@/components/map/MapLegendBar';
 import type {
   CatalogItem,
+  CitySnapshot,
   GeoAreaFeature,
   GeoAreaFeatureCollection,
   LatestPricesPayload,
@@ -17,6 +18,7 @@ interface BrazilChoroplethMapProps {
   brazilGeo: GeoAreaFeatureCollection | null;
   stateGeo: GeoAreaFeatureCollection | null;
   latest: LatestPricesPayload | null;
+  activeStateCities?: Record<string, CitySnapshot>;
   selectedItem: CatalogItem | null;
   selectedUf: string | null;
   selectedCityCode: string | null;
@@ -53,6 +55,7 @@ export function BrazilChoroplethMap({
   brazilGeo,
   stateGeo,
   latest,
+  activeStateCities,
   selectedItem,
   selectedUf,
   selectedCityCode,
@@ -65,25 +68,33 @@ export function BrazilChoroplethMap({
   const [hoverInfo, setHoverInfo] = useState<HoverTooltip | null>(null);
 
   const isStateZoom = Boolean(selectedUf);
+  const isStateLevelItem = selectedItem?.geoLevel === 'state';
   const rawActiveGeo = isStateZoom && stateGeo ? stateGeo : brazilGeo;
   const activeGeo = useMemo(
     () => (rawActiveGeo ? rewindGeoCollection(rawActiveGeo) : null),
     [rawActiveGeo],
   );
   const activeStateSnapshot = selectedUf && latest ? latest.states[selectedUf] : null;
+  const stateCitiesMap = useMemo(
+    () => activeStateCities || activeStateSnapshot?.cities || {},
+    [activeStateCities, activeStateSnapshot],
+  );
   const activeCitySnapshot =
-    activeStateSnapshot && selectedCityCode ? activeStateSnapshot.cities[selectedCityCode] : null;
+    selectedCityCode && stateCitiesMap[selectedCityCode] ? stateCitiesMap[selectedCityCode] : null;
 
   const domain = useMemo(() => {
     if (!latest || !selectedItem) return null;
     const source =
-      isStateZoom && activeStateSnapshot
-        ? Object.values(activeStateSnapshot.cities).map((c) => c.items[selectedItem.id]?.avg)
+      isStateZoom && !isStateLevelItem
+        ? Object.values(stateCitiesMap).map((c) => c.items[selectedItem.id]?.avg)
         : Object.values(latest.states).map((s) => s.items[selectedItem.id]?.avg);
     return computePriceDomain(source.filter((v): v is number => typeof v === 'number'));
-  }, [latest, selectedItem, isStateZoom, activeStateSnapshot]);
+  }, [latest, selectedItem, isStateZoom, isStateLevelItem, stateCitiesMap]);
 
-  const legendStops = useMemo(() => getLegendStops(domain), [domain]);
+  const legendStops = useMemo(
+    () => getLegendStops(domain, selectedItem?.decimals ?? 2),
+    [domain, selectedItem?.decimals],
+  );
 
   const renderedFeatures = useMemo(() => {
     if (!activeGeo || !activeGeo.features?.length) return [];
@@ -105,11 +116,21 @@ export function BrazilChoroplethMap({
   const getMetricForFeature = (feature: GeoAreaFeature): PriceMetric | null => {
     if (!latest || !selectedItem) return null;
     if (isStateZoom) {
-      return activeStateSnapshot?.cities[feature.properties.code]?.items[selectedItem.id] || null;
+      const cityMetric = stateCitiesMap[feature.properties.code]?.items[selectedItem.id];
+      if (cityMetric) return cityMetric;
+      if (isStateLevelItem) {
+        return activeStateSnapshot?.items[selectedItem.id] || null;
+      }
+      return null;
     }
     const uf = feature.properties.uf || feature.properties.code;
     return latest.states[uf]?.items[selectedItem.id] || null;
   };
+
+  const citiesForItemInState =
+    activeStateSnapshot && selectedItem
+      ? activeStateSnapshot.citiesByItem?.[selectedItem.id] ?? activeStateSnapshot.citiesCount
+      : 0;
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-3 shadow-corporate sm:p-4">
@@ -181,7 +202,9 @@ export function BrazilChoroplethMap({
                     aria-label={`${feature.properties.name}${metric && selectedItem ? `: ${formatBRL(metric.avg, selectedItem.decimals)}` : ': sem coleta na janela'}`}
                     onClick={() => {
                       if (isStateZoom) {
-                        if (metric) onSelectCity(code);
+                        if (metric && stateCitiesMap[code]?.items[selectedItem?.id || '']) {
+                          onSelectCity(code);
+                        }
                       } else {
                         setZoomScale(1);
                         onSelectState(uf);
@@ -190,22 +213,37 @@ export function BrazilChoroplethMap({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        if (isStateZoom && metric) onSelectCity(code);
+                        if (
+                          isStateZoom &&
+                          metric &&
+                          stateCitiesMap[code]?.items[selectedItem?.id || '']
+                        ) {
+                          onSelectCity(code);
+                        }
                         if (!isStateZoom) onSelectState(uf);
                       }
                     }}
                     onMouseEnter={(e) => {
                       const rect = e.currentTarget.ownerSVGElement?.getBoundingClientRect();
                       if (!rect) return;
+                      const stSnap = latest?.states[uf];
+                      const stCityCount = selectedItem
+                        ? stSnap?.citiesByItem?.[selectedItem.id] ?? stSnap?.citiesCount ?? 0
+                        : stSnap?.citiesCount ?? 0;
+
                       setHoverInfo({
                         title: isStateZoom
                           ? `${feature.properties.name} (${selectedUf})`
                           : `${feature.properties.name} (${uf})`,
                         subtitle: isStateZoom
-                          ? metric
-                            ? `${formatIntegerBR(metric.samples)} coletas`
-                            : 'Sem coleta ANP neste ciclo'
-                          : `${latest?.states[uf]?.citiesCount || 0} cidades pesquisadas`,
+                          ? isStateLevelItem
+                            ? 'Índice oficial estadual (UF)'
+                            : metric
+                              ? `${formatIntegerBR(metric.samples)} registros`
+                              : 'Sem coleta para este item'
+                          : isStateLevelItem
+                            ? 'Valor oficial da UF'
+                            : `${stCityCount} cidades pesquisadas`,
                         metric,
                         x: e.clientX - rect.left,
                         y: e.clientY - rect.top,
@@ -285,7 +323,8 @@ export function BrazilChoroplethMap({
         unit={selectedItem?.unit || 'R$'}
         stops={legendStops}
         isStateZoom={isStateZoom}
-        citiesCount={activeStateSnapshot?.citiesCount || 0}
+        citiesCount={citiesForItemInState}
+        geoLevel={selectedItem?.geoLevel}
       />
     </div>
   );

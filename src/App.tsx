@@ -5,6 +5,7 @@ import { PriceEvolutionChart } from '@/components/charts/PriceEvolutionChart';
 import { EntityDetailDrawer } from '@/components/details/EntityDetailDrawer';
 import { MethodologyModal } from '@/components/details/MethodologyModal';
 import { ScopeKpiStrip } from '@/components/details/ScopeKpiStrip';
+import { CategoryTabs } from '@/components/items/CategoryTabs';
 import { ItemListPanel } from '@/components/items/ItemListPanel';
 import { QuickItemPills } from '@/components/items/QuickItemPills';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -12,6 +13,7 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { BrazilChoroplethMap } from '@/components/map/BrazilChoroplethMap';
 import { LocationRankingList } from '@/components/ranking/LocationRankingList';
 import { usePriceExplorer } from '@/hooks/usePriceExplorer';
+import { isNfceInput } from '@/utils/nfceParser';
 
 export function App() {
   const explorer = usePriceExplorer();
@@ -33,7 +35,9 @@ export function App() {
 
   const handleDetectedBarcode = (code: string) => {
     setScannedCode(code);
-    explorer.setSearchQuery(code);
+    if (!isNfceInput(code)) {
+      explorer.setSearchQuery(code);
+    }
     explorer.setMobileTab('codigo');
   };
 
@@ -55,7 +59,7 @@ export function App() {
         onToggleTheme={explorer.toggleTheme}
       />
 
-      <main className="mx-auto max-w-[1440px] space-y-4 px-3 py-3 sm:px-5 sm:py-4">
+      <main className="mx-auto max-w-[1440px] space-y-3.5 px-3 py-3 sm:px-5 sm:py-4">
         {explorer.error ? (
           <div
             role="alert"
@@ -70,32 +74,37 @@ export function App() {
           </div>
         ) : (
           <>
-            {/* Quick product pills — always accessible on mobile and desktop */}
+            <CategoryTabs
+              catalog={explorer.catalog}
+              selectedCategory={explorer.selectedCategory}
+              onSelectCategory={explorer.selectCategory}
+            />
+
             <QuickItemPills
-              items={explorer.catalog}
+              items={explorer.categoryCatalog}
               selectedItemId={explorer.selectedItemId}
               metricsMap={scopeMetricsMap}
               onSelectItem={explorer.setSelectedItemId}
             />
 
-            {/* Executive KPI Strip */}
             <ScopeKpiStrip
               item={explorer.selectedItem}
               metric={explorer.activeScopeMetric}
               scopeLabel={scopeLabel}
+              selectedUf={explorer.selectedUf}
               ethanolPrice={scopeMetricsMap['etanol']?.avg}
               gasolinePrice={scopeMetricsMap['gasolina-comum']?.avg}
+              energyFlag={explorer.manifest?.energyFlag}
             />
 
-            {/* Main Split Workspace (Desktop) / Tabbed Workspace (Mobile) */}
             <div className="grid gap-4 lg:grid-cols-12">
-              {/* Left Column: Choropleth Map + Daily Chart */}
               <div className="space-y-4 lg:col-span-7">
                 <div className={explorer.mobileTab === 'mapa' ? 'block' : 'hidden lg:block'}>
                   <BrazilChoroplethMap
                     brazilGeo={explorer.brazilGeo}
                     stateGeo={explorer.stateGeo}
                     latest={explorer.latest}
+                    activeStateCities={explorer.activeStateCities}
                     selectedItem={explorer.selectedItem}
                     selectedUf={explorer.selectedUf}
                     selectedCityCode={explorer.selectedCityCode}
@@ -122,13 +131,15 @@ export function App() {
                     range={explorer.historyRange}
                     seriesMode={explorer.seriesMode}
                     loading={explorer.loadingHistory}
+                    dollarPoints={explorer.dolarPtax?.points}
+                    showDollarOverlay={explorer.showDollarOverlay}
+                    onToggleDollarOverlay={() => explorer.setShowDollarOverlay((v) => !v)}
                     onRangeChange={explorer.setHistoryRange}
                     onSeriesModeChange={explorer.setSeriesMode}
                   />
                 </div>
               </div>
 
-              {/* Right Sidebar: Items + Ranking + Barcode Search */}
               <aside className="space-y-4 lg:col-span-5">
                 <div className={explorer.mobileTab === 'codigo' ? 'block' : 'hidden lg:block'}>
                   <BarcodeSearchPanel
@@ -136,6 +147,7 @@ export function App() {
                     catalog={explorer.catalog}
                     metricsMap={scopeMetricsMap}
                     scopeLabel={scopeLabel}
+                    selectedUf={explorer.selectedUf}
                     externalCode={scannedCode}
                     onOpenCamera={() => setScannerOpen(true)}
                     onSelectCatalogItem={(itemId) => {
@@ -166,6 +178,7 @@ export function App() {
                 >
                   <LocationRankingList
                     latest={explorer.latest}
+                    activeStateCities={explorer.activeStateCities}
                     selectedItem={explorer.selectedItem}
                     selectedUf={explorer.selectedUf}
                     selectedCityCode={explorer.selectedCityCode}

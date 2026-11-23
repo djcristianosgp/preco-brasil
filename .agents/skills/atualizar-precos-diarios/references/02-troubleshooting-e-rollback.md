@@ -1,37 +1,40 @@
-# Troubleshooting e Rollback — Pipeline PreçoBrasil
+# Troubleshooting e Rollback — Pipeline Multi-Fonte PreçoBrasil
 
 ## 1. Pegadinhas Conhecidas das Fontes Oficiais
 
 | Sintoma | Causa Raiz | Solução Aplicada no Código |
 | :--- | :--- | :--- |
-| **`HTTP 403 Forbidden` na ANP ou `405` no IBGE** | WAF do `gov.br` e API do IBGE bloqueiam requisições `HTTP HEAD`. | Usar exclusivamente `fetch(url, { headers: { 'User-Agent': '...' } })` (`GET`). |
-| **Colunas deslocadas / datas inválidas em linhas do CSV ANP** | Campos de endereço e complemento possuem `;` entre aspas duplas. | `parseCsvRecords()` em `scripts/lib/anp-csv-parser.mjs` realiza leitura RFC-4180 caractere a caractere respeitando aspas e `""`. |
-| **Falha 404 ao tentar baixar CSV mensal por padrão de URL fixo** | A ANP publica arquivos mensais com variações e typos no nome (ex.: `02-cados-abertos-preco-gasolina-etanol.csv` vs `10-gasolina-etanol.csv`). | `discoverBackfillUrls()` lê o HTML da página oficial de dados abertos e extrai dinamicamente os links `.csv` reais de `dsan/2026/`. |
-| **Caracteres corrompidos (`\uFFFD`) em nomes de cidades/bairros** | Alguns CSVs históricos da ANP são codificados em ISO-8859-1 (Latin-1) e outros em UTF-8 com BOM. | `decodeAnpBuffer()` remove BOM UTF-8 e faz fallback automático para `latin1` se detectar `\uFFFD`. |
-| **`TypeError` ao ler UF de município no IBGE** | Alguns registros da API `localidades/municipios` retornam `microrregiao: null`. | `extractMunicipalityUf()` usa `microrregiao?.mesorregiao?.UF?.sigla \|\| regiao-imediata?.regiao-intermediaria?.UF?.sigla`. |
-| **Município não mapeado (`Sant'Ana do Livramento`)** | Substituir pontuações por espaço antes de remover apóstrofos transforma `Sant'Ana` em `SANT ANA`. | `normalizeMunicipalityName()` remove `['`’´]` **antes** de substituir caracteres não alfanuméricos por espaço. |
-| **Mapa do Brasil renderizado como quadrado sólido no navegador** | GeoJSON RFC 7946 do IBGE usa anel externo anti-horário, enquanto `d3-geo` espera sentido horário para polígonos esféricos. | `rewindGeometry()` em `scripts/fetch-ibge-geo.mjs` e `rewindGeoCollection()` em `src/utils/geoWinding.ts` validam `geoArea(ring) > 2 * Math.PI` e invertem anéis externos anti-horários. |
-| **Navegador continua exibindo malha antiga após regenerar `public/geo/`** | Cache HTTP de longa duração para `/geo/*`. | Incrementar a query de cache-busting (`?v=2`, `?v=3`...) em `loadBrazilGeo()` e `loadStateGeo()` (`src/services/priceDataService.ts`). |
+| **`HTTP 403 Forbidden` na ANP/ANVISA ou `405` no IBGE** | WAFs governamentais bloqueiam `HTTP HEAD`. | `fetchResponseWithRetry()` em `scripts/lib/common.mjs` força `GET`/`POST` com `User-Agent`. |
+| **Colunas deslocadas em CSVs ANP ou CMED (`TA_PRECO_MEDICAMENTO.csv`)** | Campos de endereço e `SUBSTÂNCIA` possuem `;` dentro de aspas duplas. | `parseCsvRecords()` realiza parse RFC-4180 caractere a caractere respeitando aspas e `""`. |
+| **`HTTP 400 Bad Request` no CKAN da ANEEL** | `datastore_search_sql` falha para queries com filtros compostos/aspas no CKAN da ANEEL. | Usar `datastore_search` com parâmetro JSON `filters` (`scripts/lib/connectors/aneel.mjs`). |
+| **Bandeira Verde da ANEEL ignorada (`null`)** | O campo `VlrAdicionalBandeira` retorna string `",00"` com vírgula inicial. | Passar `{ min: 0 }` para `parseBrNumber()` em `aneel.mjs`. |
+| **OutOfMemory ou lentidão no CONAB `ProhortDiario.txt` (~190 MB)** | Arquivo completo possui mais de 1,1 milhão de linhas desde 2022 com ponto decimal (`.`). | Streaming linha a linha com `TextDecoder('latin1')` filtrando apenas `2026/` + parser decimal com `.`. |
+| **`HTTP 500` ou colunas invertidas no DIEESE (`cesta/produto`)** | `tipoDado=1` ou `2` retornam erro 500 no endpoint legado; além disso o cabeçalho da tabela traz **capitais nas colunas** e **meses nas linhas**. | Usar `tipoDado=5` (Total da Cesta) e `tipoDado=4` (Preço Médio) e ler colunas horizontais por capital (`dieese-cesta.mjs`). |
+| **Preços altos (SINAPI R$ 2.000/m² ou Cesta R$ 900) zerados ou truncados** | `parseBrPrice()` da ANP limitava valores a `<= 500` e removia pontos como milhar em strings JSON como `"1993.76"`. | `parseBrNumber()` trata corretamente formato BR (`1.993,76`) e formato JSON (`1993.76`) até `100.000`. |
+| **União de 2+ fontes apagando datas de outro produto** | Limpar datas globalmente em `mergeFreshBucketsIntoHistory()` apagaria meses SINAPI/DIEESE quando ANP só envia dias recentes. | Escopo estritamente isolado por `itemId` em `freshDatesByItem` (`update-prices.mjs`). |
+| **Município ANP não encontrado (`Sant'Ana do Livramento`)** | Remover pontuações antes dos apóstrofos separa `SANT` de `ANA`. | `normalizeMunicipalityName()` remove `['`’´]` **antes** de normalizar espaços. |
+| **Mapa renderizado como quadrado sólido no `d3-geo`** | Polígonos IBGE seguem RFC 7946 anti-horário enquanto `d3-geo` espera orientação esférica horária. | `rewindGeometry()` + `rewindGeoCollection()` (`src/utils/geoWinding.ts`) + cache-buster `?v=2`. |
 
 ---
 
 ## 2. Procedimentos de Recuperação e Rollback
 
-### Caso 1 — Falha temporária da ANP durante atualização matinal
-1. Verifique se a URL oficial da ANP alterou no portal `gov.br/anp`.
-2. Não faça commit de JSON vazio; o script sai com erro `exit 1` preservando `public/data/`.
-3. Restaure qualquer alteração parcial local com:
+### Caso 1 — Falha de conector secundário (ANEEL, CONAB, DIEESE, CMED, SINAPI, BCB)
+- Cada conector roda isolado em `runConnectorSafely()`. O pipeline grava aviso em `manifest.json -> connectorStatus` e **preserva o histórico existente** daquela fonte sem interromper a atualização diária dos demais conectores.
+
+### Caso 2 — Falha crítica na ANP sem histórico local ou snapshot corrompido
+1. Não faça commit parcial; reverta alterações locais antes do push:
    ```bash
    git checkout -- public/data/
    ```
+2. Caso um commit defeituoso já tenha ido para `main`, reverta com segurança para disparar rebuild limpo na Vercel:
+   ```bash
+   git revert <commit-sha>
+   git push origin main
+   ```
 
-### Caso 2 — Perda acidental de histórico antigo após execução
-1. Cheque `firstCollectionDate` e `totalDays` em `public/data/manifest.json`.
-2. Se `firstCollectionDate` tiver avançado indevidamente, restaure `public/data/` pelo último commit válido e execute novamente `npm run data:backfill` (ou `npm run data:backfill -- --full-year`).
-
-### Caso 3 — Reverter versão publicada na Vercel
+### Caso 3 — Regenerar sharding CMED ou mapeamento municipal ANEEL
 ```bash
-git revert <commit-sha-do-update>
-git push origin main
+npm run data:aneel-map
+npm run data:backfill
 ```
-A Vercel gerará um novo build usando o snapshot anterior íntegro.

@@ -75,7 +75,7 @@ export function ItemListPanel({
                   <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
                     <span className="inline-flex items-center gap-1 rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[10px]">
                       <Barcode className="h-3 w-3" aria-hidden="true" />
-                      ANP {item.anpCode}
+                      {item.codeLabel || `ANP ${item.anpCode}`}
                     </span>
                     <span className="font-mono text-[10px]">NCM {item.ncm}</span>
                     {metric && (

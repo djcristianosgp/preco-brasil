@@ -1,185 +1,36 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CATALOG_ITEMS } from './lib/catalog.mjs';
 import {
-  ANP_PRODUCT_MAP,
-  decodeAnpBuffer,
-  normalizeMunicipalityName,
-  parseBrDateToIso,
-  parseBrPrice,
-  parseCsvRecords,
-} from './lib/anp-csv-parser.mjs';
+  addDaysIso,
+  createBuckets,
+  round3,
+  round4,
+  setBucketDate,
+} from './lib/common.mjs';
+import { runAneelConnector } from './lib/connectors/aneel.mjs';
+import { runAnpConnector } from './lib/connectors/anp.mjs';
+import { runAnvisaCmedConnector } from './lib/connectors/anvisa-cmed.mjs';
+import { runBcbPtaxConnector } from './lib/connectors/bcb-ptax.mjs';
+import { runCommunityNfceConnector } from './lib/connectors/community-nfce.mjs';
+import { runConabProhortConnector } from './lib/connectors/conab-prohort.mjs';
+import { runDieeseCestaConnector } from './lib/connectors/dieese-cesta.mjs';
+import { runIbgeSinapiConnector } from './lib/connectors/ibge-sinapi.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
+const GEO_DIR = path.join(ROOT_DIR, 'public', 'geo');
 const DATA_DIR = path.join(ROOT_DIR, 'public', 'data');
 const BY_ITEM_DIR = path.join(DATA_DIR, 'history', 'by-item');
 const BY_STATE_DIR = path.join(DATA_DIR, 'history', 'by-state');
+const LATEST_BY_STATE_DIR = path.join(DATA_DIR, 'latest', 'by-state');
 const SNAPSHOTS_DIR = path.join(DATA_DIR, 'snapshots');
-const GEO_INDEX_PATH = path.join(ROOT_DIR, 'public', 'geo', 'ibge-municipalities-index.json');
-const STATES_GEO_PATH = path.join(ROOT_DIR, 'public', 'geo', 'brazil-states.json');
+const GEO_INDEX_PATH = path.join(GEO_DIR, 'ibge-municipalities-index.json');
+const STATES_GEO_PATH = path.join(GEO_DIR, 'brazil-states.json');
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (compatible; PrecoBrasilBot/1.0)',
-};
-
-const ANP_QUS_URLS = [
-  'https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/qus/ultimas-4-semanas-gasolina-etanol.csv',
-  'https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/qus/ultimas-4-semanas-diesel-gnv.csv',
-  'https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/qus/ultimas-4-semanas-glp.csv',
-];
-
-const ANP_INDEX_PAGE =
-  'https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis';
-
-export const CATALOG_ITEMS = [
-  {
-    id: 'gasolina-comum',
-    name: 'Gasolina Comum',
-    shortName: 'Gasolina',
-    category: 'combustiveis',
-    categoryLabel: 'Combustíveis Automotivos',
-    unit: 'R$/L',
-    decimals: 2,
-    anpCode: '320102001',
-    ncm: '27101259',
-    barcodes: ['320102001', '27101259', '7890003201027'],
-    aliases: ['gasolina', 'gasolina c', 'gasolina comum', 'combustivel', 'gasolina tipo c'],
-    sourceName: 'ANP — Levantamento de Preços de Combustíveis',
-    featured: true,
-    priority: 1,
-  },
-  {
-    id: 'etanol',
-    name: 'Etanol Hidratado',
-    shortName: 'Etanol',
-    category: 'combustiveis',
-    categoryLabel: 'Combustíveis Automotivos',
-    unit: 'R$/L',
-    decimals: 2,
-    anpCode: '810101001',
-    ncm: '22071090',
-    barcodes: ['810101001', '22071090', '7890008101018'],
-    aliases: ['etanol', 'alcool', 'etanol hidratado', 'álcool combustível', 'etanol comum'],
-    sourceName: 'ANP — Levantamento de Preços de Combustíveis',
-    featured: true,
-    priority: 2,
-  },
-  {
-    id: 'diesel-s10',
-    name: 'Óleo Diesel S10',
-    shortName: 'Diesel S10',
-    category: 'combustiveis',
-    categoryLabel: 'Combustíveis Automotivos',
-    unit: 'R$/L',
-    decimals: 2,
-    anpCode: '820101034',
-    ncm: '27101921',
-    barcodes: ['820101034', '27101921', '7890008201039'],
-    aliases: ['diesel s10', 's10', 'oleo diesel s10', 'diesel aditivado'],
-    sourceName: 'ANP — Levantamento de Preços de Combustíveis',
-    featured: true,
-    priority: 3,
-  },
-  {
-    id: 'diesel-comum',
-    name: 'Óleo Diesel Comum',
-    shortName: 'Diesel',
-    category: 'combustiveis',
-    categoryLabel: 'Combustíveis Automotivos',
-    unit: 'R$/L',
-    decimals: 2,
-    anpCode: '820101012',
-    ncm: '27101921',
-    barcodes: ['820101012', '7890008201015'],
-    aliases: ['diesel', 'diesel comum', 'diesel s500', 'oleo diesel'],
-    sourceName: 'ANP — Levantamento de Preços de Combustíveis',
-    featured: true,
-    priority: 4,
-  },
-  {
-    id: 'gasolina-aditivada',
-    name: 'Gasolina Aditivada',
-    shortName: 'Gas. Aditivada',
-    category: 'combustiveis',
-    categoryLabel: 'Combustíveis Automotivos',
-    unit: 'R$/L',
-    decimals: 2,
-    anpCode: '320102002',
-    ncm: '27101259',
-    barcodes: ['320102002', '7890003201034'],
-    aliases: ['gasolina aditivada', 'aditivada', 'grid', 'podium', 'v-power'],
-    sourceName: 'ANP — Levantamento de Preços de Combustíveis',
-    featured: true,
-    priority: 5,
-  },
-  {
-    id: 'glp-13kg',
-    name: 'Gás de Cozinha (GLP 13 kg)',
-    shortName: 'GLP 13 kg',
-    category: 'energia',
-    categoryLabel: 'Gás & Energia',
-    unit: 'R$/13kg',
-    decimals: 2,
-    anpCode: '210203001',
-    ncm: '27111910',
-    barcodes: ['210203001', '27111910', '7890002102035'],
-    aliases: ['glp', 'gas de cozinha', 'botijao', 'botijao 13kg', 'gas glp'],
-    sourceName: 'ANP — Levantamento de Preços de GLP',
-    featured: false,
-    priority: 6,
-  },
-  {
-    id: 'gnv',
-    name: 'Gás Natural Veicular (GNV)',
-    shortName: 'GNV',
-    category: 'combustiveis',
-    categoryLabel: 'Combustíveis Automotivos',
-    unit: 'R$/m³',
-    decimals: 2,
-    anpCode: '220101005',
-    ncm: '27112100',
-    barcodes: ['220101005', '27112100', '7890002201011'],
-    aliases: ['gnv', 'gas natural', 'gas veicular'],
-    sourceName: 'ANP — Levantamento de Preços de Combustíveis',
-    featured: false,
-    priority: 7,
-  },
-];
-
-const MANUAL_CITY_ALIASES = {
-  'SP|MOGI MIRIM': 'MOJI MIRIM',
-  'RJ|PARATI': 'PARATY',
-  'MT|POXOREO': 'POXOREU',
-};
-
-function round3(value) {
-  return Math.round(value * 1000) / 1000;
-}
-
-function addDaysIso(isoDate, deltaDays) {
-  const date = new Date(`${isoDate}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + deltaDays);
-  return date.toISOString().slice(0, 10);
-}
-
-async function fetchBufferWithRetry(url, retries = 3) {
-  let lastError;
-  for (let attempt = 1; attempt <= retries; attempt += 1) {
-    try {
-      const response = await fetch(url, { headers: HEADERS });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} em ${url}`);
-      }
-      return await response.arrayBuffer();
-    } catch (error) {
-      lastError = error;
-      if (attempt < retries) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-      }
-    }
-  }
-  throw lastError;
+function roundByDecimals(value, decimals = 2) {
+  return decimals >= 3 ? round4(value) : round3(value);
 }
 
 async function loadIbgeMappings() {
@@ -201,53 +52,6 @@ async function loadIbgeMappings() {
   }
 
   return { cityLookup, cityNameByCode, stateMeta };
-}
-
-async function discoverBackfillUrls(fullYear) {
-  const buf = await fetchBufferWithRetry(ANP_INDEX_PAGE);
-  const html = new TextDecoder('utf-8').decode(buf);
-  const matches = html.match(
-    /https?:\/\/[^\s"'<>]+shpc\/dsan\/2026\/[^\s"'<>]+\.csv/gi,
-  ) || [];
-  const unique = Array.from(new Set(matches)).sort();
-  if (fullYear) {
-    return unique;
-  }
-  return unique.filter((url) => /\/(07|08|09|10)-/.test(url));
-}
-
-function createBuckets() {
-  return {
-    national: new Map(), // itemId -> Map(date -> { sum, count, min, max })
-    state: new Map(), // `${itemId}|${uf}` -> Map(date -> { sum, count, min, max })
-    city: new Map(), // `${itemId}|${uf}|${cityCode}` -> Map(date -> { sum, count, min, max })
-  };
-}
-
-function upsertBucket(bucketMap, key, date, sum, count, min, max) {
-  let dateMap = bucketMap.get(key);
-  if (!dateMap) {
-    dateMap = new Map();
-    bucketMap.set(key, dateMap);
-  }
-  const prev = dateMap.get(date);
-  if (!prev) {
-    dateMap.set(date, { sum, count, min, max });
-  } else {
-    prev.sum += sum;
-    prev.count += count;
-    if (min < prev.min) prev.min = min;
-    if (max > prev.max) prev.max = max;
-  }
-}
-
-function setBucketDate(bucketMap, key, date, sum, count, min, max) {
-  let dateMap = bucketMap.get(key);
-  if (!dateMap) {
-    dateMap = new Map();
-    bucketMap.set(key, dateMap);
-  }
-  dateMap.set(date, { sum, count, min, max });
 }
 
 async function loadExistingHistoryIntoBuckets(buckets) {
@@ -310,77 +114,53 @@ async function loadExistingHistoryIntoBuckets(buckets) {
   }
 }
 
-function resolveCity(cityLookup, uf, rawMun) {
-  const norm = normalizeMunicipalityName(rawMun);
-  const direct = cityLookup.get(`${uf}|${norm}`);
-  if (direct) return direct;
-  const alias = MANUAL_CITY_ALIASES[`${uf}|${norm}`];
-  if (alias) {
-    return cityLookup.get(`${uf}|${alias}`) || null;
-  }
-  return null;
-}
+function mergeFreshBucketsIntoHistory(historyBuckets, freshBuckets, updatedItemIds) {
+  if (updatedItemIds.size === 0) return;
 
-function ingestCsvRows(csvText, cityLookup, dedupSet, freshBuckets, unmatchedCities) {
-  const records = parseCsvRecords(csvText, ';');
-  if (records.length < 2) return { parsed: 0, accepted: 0 };
-
-  const header = records[0].map((h) => h.replace(/^\uFEFF/, '').trim());
-  const idxUf = header.indexOf('Estado - Sigla');
-  const idxMun = header.indexOf('Municipio');
-  const idxCnpj = header.indexOf('CNPJ da Revenda');
-  const idxProd = header.indexOf('Produto');
-  const idxDate = header.indexOf('Data da Coleta');
-  const idxPrice = header.indexOf('Valor de Venda');
-
-  if ([idxUf, idxMun, idxProd, idxDate, idxPrice].some((i) => i === -1)) {
-    throw new Error(`Cabeçalho CSV inesperado: ${header.join(', ')}`);
+  // Scope date clearing strictly per updated itemId so different cadences never overwrite each other
+  const freshDatesByItem = new Map();
+  for (const itemId of updatedItemIds) {
+    const dates = new Set();
+    for (const d of freshBuckets.national.get(itemId)?.keys() || []) dates.add(d);
+    if (dates.size > 0) freshDatesByItem.set(itemId, dates);
   }
 
-  let accepted = 0;
-  for (let i = 1; i < records.length; i += 1) {
-    const row = records[i];
-    if (row.length <= Math.max(idxUf, idxMun, idxProd, idxDate, idxPrice)) continue;
+  for (const [itemId, dateMap] of historyBuckets.national.entries()) {
+    const datesToDelete = freshDatesByItem.get(itemId);
+    if (!datesToDelete) continue;
+    for (const d of datesToDelete) dateMap.delete(d);
+  }
+  for (const [key, dateMap] of historyBuckets.state.entries()) {
+    const itemId = key.split('|')[0];
+    const datesToDelete = freshDatesByItem.get(itemId);
+    if (!datesToDelete) continue;
+    for (const d of datesToDelete) dateMap.delete(d);
+  }
+  for (const [key, dateMap] of historyBuckets.city.entries()) {
+    const itemId = key.split('|')[0];
+    const datesToDelete = freshDatesByItem.get(itemId);
+    if (!datesToDelete) continue;
+    for (const d of datesToDelete) dateMap.delete(d);
+  }
 
-    const productRaw = row[idxProd].toUpperCase();
-    const itemId = ANP_PRODUCT_MAP[productRaw];
-    if (!itemId) continue;
-
-    const dateIso = parseBrDateToIso(row[idxDate]);
-    const price = parseBrPrice(row[idxPrice]);
-    const uf = row[idxUf].toUpperCase();
-    const rawMun = row[idxMun];
-    if (!dateIso || price === null || uf.length !== 2 || !rawMun) continue;
-
-    const cnpj = idxCnpj >= 0 ? row[idxCnpj] : String(i);
-    const dedupKey = `${itemId}|${dateIso}|${cnpj}`;
-    if (dedupSet.has(dedupKey)) continue;
-    dedupSet.add(dedupKey);
-
-    accepted += 1;
-    upsertBucket(freshBuckets.national, itemId, dateIso, price, 1, price, price);
-    upsertBucket(freshBuckets.state, `${itemId}|${uf}`, dateIso, price, 1, price, price);
-
-    const city = resolveCity(cityLookup, uf, rawMun);
-    if (city) {
-      upsertBucket(
-        freshBuckets.city,
-        `${itemId}|${uf}|${city.code}`,
-        dateIso,
-        price,
-        1,
-        price,
-        price,
-      );
-    } else {
-      unmatchedCities.add(`${uf}|${rawMun}`);
+  for (const [key, dateMap] of freshBuckets.national.entries()) {
+    for (const [d, val] of dateMap.entries()) {
+      setBucketDate(historyBuckets.national, key, d, val.sum, val.count, val.min, val.max);
     }
   }
-
-  return { parsed: records.length - 1, accepted };
+  for (const [key, dateMap] of freshBuckets.state.entries()) {
+    for (const [d, val] of dateMap.entries()) {
+      setBucketDate(historyBuckets.state, key, d, val.sum, val.count, val.min, val.max);
+    }
+  }
+  for (const [key, dateMap] of freshBuckets.city.entries()) {
+    for (const [d, val] of dateMap.entries()) {
+      setBucketDate(historyBuckets.city, key, d, val.sum, val.count, val.min, val.max);
+    }
+  }
 }
 
-function toSortedDailySeries(dateMap) {
+function toSortedDailySeries(dateMap, decimals = 2) {
   if (!dateMap || dateMap.size === 0) return [];
   const dates = Array.from(dateMap.keys()).sort();
   const series = [];
@@ -388,9 +168,8 @@ function toSortedDailySeries(dateMap) {
   for (let i = 0; i < dates.length; i += 1) {
     const date = dates[i];
     const current = dateMap.get(date);
-    const avg = round3(current.sum / current.count);
+    const avg = roundByDecimals(current.sum / current.count, decimals);
 
-    // Trailing 7-calendar-day weighted moving average
     const windowStart = addDaysIso(date, -6);
     let wSum = 0;
     let wCount = 0;
@@ -404,9 +183,9 @@ function toSortedDailySeries(dateMap) {
     series.push({
       date,
       avg,
-      avg7d: round3(wSum / wCount),
-      min: round3(current.min),
-      max: round3(current.max),
+      avg7d: roundByDecimals(wSum / wCount, decimals),
+      min: roundByDecimals(current.min, decimals),
+      max: roundByDecimals(current.max, decimals),
       samples: current.count,
     });
   }
@@ -414,10 +193,37 @@ function toSortedDailySeries(dateMap) {
   return series;
 }
 
-function summarizeWindowMetric(dateMap, activeEnd, minAnchorSamples = 1) {
+function summarizeWindowMetric(dateMap, activeEnd, item, isNational = false) {
   if (!dateMap || dateMap.size === 0) return null;
   const dates = Array.from(dateMap.keys()).sort();
+  const decimals = item?.decimals ?? 2;
 
+  if (item?.cadence === 'monthly' || item?.cadence === 'regulated') {
+    const lastDate = dates[dates.length - 1];
+    const cur = dateMap.get(lastDate);
+    if (!cur || cur.count === 0) return null;
+    const prevDate = dates.length >= 2 ? dates[dates.length - 2] : null;
+    const prev = prevDate ? dateMap.get(prevDate) : null;
+
+    const avg = roundByDecimals(cur.sum / cur.count, decimals);
+    const previousAvg = prev && prev.count > 0 ? roundByDecimals(prev.sum / prev.count, decimals) : null;
+    const changePct =
+      previousAvg && previousAvg > 0
+        ? Math.round(((avg - previousAvg) / previousAvg) * 10000) / 100
+        : 0;
+
+    return {
+      avg,
+      min: roundByDecimals(cur.min, decimals),
+      max: roundByDecimals(cur.max, decimals),
+      samples: cur.count,
+      previousAvg,
+      changePct,
+      lastDate,
+    };
+  }
+
+  const minAnchorSamples = isNational && item?.category === 'combustiveis' ? 50 : 1;
   let windowEnd = activeEnd;
   let windowStart = addDaysIso(windowEnd, -6);
 
@@ -449,7 +255,6 @@ function summarizeWindowMetric(dateMap, activeEnd, minAnchorSamples = 1) {
   }
   if (!cur) return null;
 
-  // Find preceding 7-day window with samples (search up to 4 weeks back for biweekly cities)
   let prev = null;
   for (let shift = 7; shift <= 28; shift += 7) {
     const pEnd = addDaysIso(windowStart, -1 - (shift - 7));
@@ -458,8 +263,8 @@ function summarizeWindowMetric(dateMap, activeEnd, minAnchorSamples = 1) {
     if (prev) break;
   }
 
-  const avg = round3(cur.sum / cur.count);
-  const previousAvg = prev ? round3(prev.sum / prev.count) : null;
+  const avg = roundByDecimals(cur.sum / cur.count, decimals);
+  const previousAvg = prev ? roundByDecimals(prev.sum / prev.count, decimals) : null;
   const changePct =
     previousAvg && previousAvg > 0
       ? Math.round(((avg - previousAvg) / previousAvg) * 10000) / 100
@@ -467,43 +272,13 @@ function summarizeWindowMetric(dateMap, activeEnd, minAnchorSamples = 1) {
 
   return {
     avg,
-    min: round3(cur.min),
-    max: round3(cur.max),
+    min: roundByDecimals(cur.min, decimals),
+    max: roundByDecimals(cur.max, decimals),
     samples: cur.count,
     previousAvg,
     changePct,
     lastDate: cur.lastDate,
   };
-}
-
-function mergeFreshBucketsIntoHistory(historyBuckets, freshBuckets) {
-  const freshDates = new Set();
-  for (const dateMap of freshBuckets.national.values()) {
-    for (const d of dateMap.keys()) freshDates.add(d);
-  }
-  // Remove fresh dates from history buckets before overwriting with exact fresh deduplicated totals
-  for (const bucketMap of [historyBuckets.national, historyBuckets.state, historyBuckets.city]) {
-    for (const dateMap of bucketMap.values()) {
-      for (const fd of freshDates) {
-        dateMap.delete(fd);
-      }
-    }
-  }
-  for (const [key, dateMap] of freshBuckets.national.entries()) {
-    for (const [d, val] of dateMap.entries()) {
-      setBucketDate(historyBuckets.national, key, d, val.sum, val.count, val.min, val.max);
-    }
-  }
-  for (const [key, dateMap] of freshBuckets.state.entries()) {
-    for (const [d, val] of dateMap.entries()) {
-      setBucketDate(historyBuckets.state, key, d, val.sum, val.count, val.min, val.max);
-    }
-  }
-  for (const [key, dateMap] of freshBuckets.city.entries()) {
-    for (const [d, val] of dateMap.entries()) {
-      setBucketDate(historyBuckets.city, key, d, val.sum, val.count, val.min, val.max);
-    }
-  }
 }
 
 async function computeDataVersion(manifestPath, todayIso) {
@@ -520,96 +295,153 @@ async function computeDataVersion(manifestPath, todayIso) {
   }
 }
 
+async function runConnectorSafely(label, fn, connectorStatus, updatedItemIds) {
+  try {
+    const result = await fn();
+    for (const id of result.itemIds || []) updatedItemIds.add(id);
+    connectorStatus.push({
+      name: result.name || label,
+      status: 'ok',
+      accepted: result.accepted || 0,
+    });
+    return result;
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`[WARN] Conector "${label}" falhou (${msg}); preservando histórico prévio.`);
+    connectorStatus.push({
+      name: label,
+      status: 'warning',
+      accepted: 0,
+      message: msg,
+    });
+    return null;
+  }
+}
+
 async function main() {
   const args = new Set(process.argv.slice(2));
   const isBackfill = args.has('--backfill');
   const fullYear = args.has('--full-year');
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   await Promise.all([
     fs.mkdir(BY_ITEM_DIR, { recursive: true }),
     fs.mkdir(BY_STATE_DIR, { recursive: true }),
+    fs.mkdir(LATEST_BY_STATE_DIR, { recursive: true }),
     fs.mkdir(SNAPSHOTS_DIR, { recursive: true }),
   ]);
 
   const { cityLookup, cityNameByCode, stateMeta } = await loadIbgeMappings();
   const buckets = createBuckets();
+  const itemById = new Map(CATALOG_ITEMS.map((item) => [item.id, item]));
 
   if (!isBackfill) {
     const loaded = await loadExistingHistoryIntoBuckets(buckets);
     console.log(
       loaded
-        ? '[ANP] Histórico existente carregado para atualização incremental.'
-        : '[ANP] Sem histórico prévio; iniciando com as últimas 4 semanas.',
+        ? '[PIPELINE] Histórico existente carregado para atualização incremental multi-fonte.'
+        : '[PIPELINE] Sem histórico prévio; iniciando nova base oficial.',
     );
-  }
-
-  let urls = [...ANP_QUS_URLS];
-  if (isBackfill) {
-    console.log('[ANP] Descobrindo CSVs mensais de 2026 no portal oficial...');
-    const monthlyUrls = await discoverBackfillUrls(fullYear);
-    urls = [...monthlyUrls, ...ANP_QUS_URLS];
-    console.log(`[ANP] ${urls.length} arquivos CSV selecionados para ingestão.`);
   }
 
   const freshBuckets = createBuckets();
-  const dedupSet = new Set();
-  const unmatchedCities = new Set();
-  let totalAccepted = 0;
+  const updatedItemIds = new Set();
+  const connectorStatus = [];
 
-  for (const url of urls) {
-    const fileName = url.split('/').pop();
-    const buf = await fetchBufferWithRetry(url);
-    const text = decodeAnpBuffer(buf);
-    const { parsed, accepted } = ingestCsvRows(
-      text,
-      cityLookup,
-      dedupSet,
-      freshBuckets,
-      unmatchedCities,
-    );
-    totalAccepted += accepted;
-    console.log(`  ✓ ${fileName}: ${parsed} linhas (${accepted} novas coletas válidas)`);
+  const anpRes = await runConnectorSafely(
+    'anp',
+    () => runAnpConnector({ isBackfill, fullYear, cityLookup, freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
+  if (!anpRes && buckets.national.size === 0) {
+    throw new Error('ANP falhou e não há histórico prévio disponível para fallback.');
   }
 
-  if (unmatchedCities.size > 0) {
-    console.warn('[ANP] Municípios não mapeados ao IBGE:', Array.from(unmatchedCities));
-  } else {
-    console.log('[ANP] 100% dos municípios da ANP mapeados com código IBGE oficial!');
-  }
+  const aneelRes = await runConnectorSafely(
+    'aneel',
+    () => runAneelConnector({ geoDir: GEO_DIR, freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
 
-  if (isBackfill) {
-    mergeFreshBucketsIntoHistory(buckets, freshBuckets);
-  } else {
-    mergeFreshBucketsIntoHistory(buckets, freshBuckets);
-  }
+  const cmedRes = await runConnectorSafely(
+    'anvisa-cmed',
+    () => runAnvisaCmedConnector({ dataDir: DATA_DIR, todayIso, freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
 
-  // Determine global date bounds and active anchor window
+  await runConnectorSafely(
+    'conab-prohort',
+    () => runConabProhortConnector({ fullYear, cityNameByCode, freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
+
+  await runConnectorSafely(
+    'ibge-sinapi',
+    () => runIbgeSinapiConnector({ stateMeta, freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
+
+  await runConnectorSafely(
+    'dieese-cesta',
+    () => runDieeseCestaConnector({ freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
+
+  await runConnectorSafely(
+    'bcb-ptax',
+    () => runBcbPtaxConnector({ dataDir: DATA_DIR }),
+    connectorStatus,
+    updatedItemIds,
+  );
+
+  await runConnectorSafely(
+    'community-nfce',
+    () => runCommunityNfceConnector({ dataDir: DATA_DIR, freshBuckets }),
+    connectorStatus,
+    updatedItemIds,
+  );
+
+  mergeFreshBucketsIntoHistory(buckets, freshBuckets, updatedItemIds);
+
+  // Determine global date bounds using daily collections for the anchor window
   const allDateCounts = new Map();
-  for (const dateMap of buckets.national.values()) {
+  const dailyDateCounts = new Map();
+  for (const [itemId, dateMap] of buckets.national.entries()) {
+    const item = itemById.get(itemId);
     for (const [d, v] of dateMap.entries()) {
       allDateCounts.set(d, (allDateCounts.get(d) || 0) + v.count);
+      if (!item || item.cadence === 'daily') {
+        dailyDateCounts.set(d, (dailyDateCounts.get(d) || 0) + v.count);
+      }
     }
   }
+
+  const sortedDailyDates = Array.from(dailyDateCounts.keys()).sort();
   const sortedAllDates = Array.from(allDateCounts.keys()).sort();
   if (sortedAllDates.length === 0) {
-    throw new Error('Nenhum dado válido foi processado.');
+    throw new Error('Nenhum dado válido foi processado por nenhuma fonte.');
   }
 
   const firstCollectionDate = sortedAllDates[0];
-  const latestCollectionDate = sortedAllDates[sortedAllDates.length - 1];
+  const latestCollectionDate =
+    sortedDailyDates[sortedDailyDates.length - 1] || sortedAllDates[sortedAllDates.length - 1];
   const activeWindowEnd = latestCollectionDate;
   const activeWindowStart = addDaysIso(activeWindowEnd, -6);
 
-  // Build catalog.json
   await fs.writeFile(
     path.join(DATA_DIR, 'catalog.json'),
     JSON.stringify({ items: CATALOG_ITEMS }, null, 2),
   );
 
-  // Build latest.json
   const nationalLatest = {};
   for (const item of CATALOG_ITEMS) {
-    const metric = summarizeWindowMetric(buckets.national.get(item.id), activeWindowEnd, 50);
+    const metric = summarizeWindowMetric(buckets.national.get(item.id), activeWindowEnd, item, true);
     if (metric) nationalLatest[item.id] = metric;
   }
 
@@ -622,18 +454,22 @@ async function main() {
       const metric = summarizeWindowMetric(
         buckets.state.get(`${item.id}|${st.uf}`),
         activeWindowEnd,
-        3,
+        item,
+        false,
       );
       if (metric) stateItems[item.id] = metric;
     }
 
     const citiesObj = {};
+    const citiesByItem = {};
     for (const [key, dateMap] of buckets.city.entries()) {
       const [itemId, uf, cityCode] = key.split('|');
       if (uf !== st.uf) continue;
-      const metric = summarizeWindowMetric(dateMap, activeWindowEnd, 1);
+      const item = itemById.get(itemId);
+      const metric = summarizeWindowMetric(dateMap, activeWindowEnd, item, false);
       if (!metric) continue;
       allCitiesCovered.add(cityCode);
+      citiesByItem[itemId] = (citiesByItem[itemId] || 0) + 1;
       if (!citiesObj[cityCode]) {
         const info = cityNameByCode.get(cityCode);
         citiesObj[cityCode] = {
@@ -645,6 +481,16 @@ async function main() {
       citiesObj[cityCode].items[itemId] = metric;
     }
 
+    // Write per-state municipal latest file to keep root latest.json compact
+    await fs.writeFile(
+      path.join(LATEST_BY_STATE_DIR, `${st.uf}.json`),
+      JSON.stringify({
+        uf: st.uf,
+        name: st.name,
+        cities: citiesObj,
+      }),
+    );
+
     statesLatest[st.uf] = {
       uf: st.uf,
       code: st.code,
@@ -652,12 +498,13 @@ async function main() {
       region: st.region,
       items: stateItems,
       citiesCount: Object.keys(citiesObj).length,
-      cities: citiesObj,
+      citiesByItem,
+      cities: {},
     };
   }
 
-  const todayIso = new Date().toISOString().slice(0, 10);
   const manifestPath = path.join(DATA_DIR, 'manifest.json');
+  const existingManifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8').catch(() => '{}'));
   const dataVersion = await computeDataVersion(manifestPath, todayIso);
 
   const latestPayload = {
@@ -671,12 +518,11 @@ async function main() {
   };
   await fs.writeFile(path.join(DATA_DIR, 'latest.json'), JSON.stringify(latestPayload));
 
-  // Build history/by-item/{itemId}.json
   for (const item of CATALOG_ITEMS) {
-    const natSeries = toSortedDailySeries(buckets.national.get(item.id));
+    const natSeries = toSortedDailySeries(buckets.national.get(item.id), item.decimals);
     const stateSeries = {};
     for (const uf of stateMeta.keys()) {
-      const s = toSortedDailySeries(buckets.state.get(`${item.id}|${uf}`));
+      const s = toSortedDailySeries(buckets.state.get(`${item.id}|${uf}`), item.decimals);
       if (s.length > 0) stateSeries[uf] = s;
     }
     await fs.writeFile(
@@ -690,12 +536,12 @@ async function main() {
     );
   }
 
-  // Build history/by-state/{UF}.json
   for (const st of stateMeta.values()) {
     const stateCityHistory = {};
     for (const [key, dateMap] of buckets.city.entries()) {
       const [itemId, uf, cityCode] = key.split('|');
       if (uf !== st.uf) continue;
+      const item = itemById.get(itemId);
       if (!stateCityHistory[cityCode]) {
         const info = cityNameByCode.get(cityCode);
         stateCityHistory[cityCode] = {
@@ -704,7 +550,7 @@ async function main() {
           items: {},
         };
       }
-      stateCityHistory[cityCode].items[itemId] = toSortedDailySeries(dateMap);
+      stateCityHistory[cityCode].items[itemId] = toSortedDailySeries(dateMap, item?.decimals ?? 2);
     }
     await fs.writeFile(
       path.join(BY_STATE_DIR, `${st.uf}.json`),
@@ -716,7 +562,6 @@ async function main() {
     );
   }
 
-  // Build snapshot & snapshots/index.json
   let totalSamplesProcessed = 0;
   for (const count of allDateCounts.values()) totalSamplesProcessed += count;
 
@@ -749,6 +594,7 @@ async function main() {
     JSON.stringify({ snapshots: snapshotIndex }, null, 2),
   );
 
+  const totalAccepted = connectorStatus.reduce((acc, s) => acc + (s.accepted || 0), 0);
   const manifest = {
     dataVersion,
     generatedAt: new Date().toISOString(),
@@ -760,41 +606,70 @@ async function main() {
     totalSamplesProcessed,
     statesCovered: Object.values(statesLatest).filter((s) => Object.keys(s.items).length > 0).length,
     citiesCovered: allCitiesCovered.size,
+    itemsCount: Object.keys(nationalLatest).length,
+    cmedProductsIndexed:
+      cmedRes?.cmedProductsIndexed ?? existingManifest.cmedProductsIndexed ?? 0,
+    energyFlag: aneelRes?.energyFlag ?? existingManifest.energyFlag ?? undefined,
+    connectorStatus,
     sources: [
       {
-        name: 'ANP — Levantamento de Preços de Combustíveis (LPC)',
+        name: 'ANP — Levantamento de Preços de Combustíveis e GLP (LPC)',
         url: 'https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis',
         cadence: 'Coleta diária / Atualização matinal às 06:00 BRT',
       },
       {
-        name: 'IBGE — Malhas Territoriais v3 & Localidades v1',
-        url: 'https://servicodados.ibge.gov.br/api/docs',
-        cadence: 'Malha oficial pré-cacheada (27 UFs / 5.571 municípios)',
+        name: 'ANEEL — Tarifas Homologadas (B1 Residencial) & Bandeiras Tarifárias',
+        url: 'https://dadosabertos.aneel.gov.br/',
+        cadence: 'Mensal por distribuidora (5.514 municípios IBGE mapeados)',
       },
       {
-        name: 'Open Food Facts Brasil — API v2 GTIN/EAN',
+        name: 'ANVISA / CMED — Tabela de Preços Máximos ao Consumidor (PMC)',
+        url: 'https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/cmed/precos',
+        cadence: 'Teto regulado por alíquota modal de ICMS nas 27 UFs (+11k EANs)',
+      },
+      {
+        name: 'CONAB / PROHORT — Cotação Diária de Hortigranjeiros (CEASAs)',
+        url: 'https://www.gov.br/conab/pt-br/atuacao/informacoes-agropecuarias/hortigranjeiros-prohort',
+        cadence: 'Diária nas principais CEASAs estaduais',
+      },
+      {
+        name: 'IBGE — SINAPI Construção Civil (Agregado 2296) & Malhas v3',
+        url: 'https://servicodados.ibge.gov.br/api/docs',
+        cadence: 'Mensal (27 UFs + Brasil) / Malhas oficiais pré-cacheadas',
+      },
+      {
+        name: 'DIEESE — Pesquisa Nacional da Cesta Básica de Alimentos',
+        url: 'https://www.dieese.org.br/analisecestabasica/salarioMinimo.html',
+        cadence: 'Mensal nas 27 capitais brasileiras',
+      },
+      {
+        name: 'Banco Central do Brasil — Dólar Comercial PTAX (SGS Série 1)',
+        url: 'https://dadosabertos.bcb.gov.br/',
+        cadence: 'Diária (pregões úteis BCB)',
+      },
+      {
+        name: 'Open Food Facts Brasil & Auditor NFC-e (ENCAT v2)',
         url: 'https://br.openfoodfacts.org/',
-        cadence: 'Consulta ao vivo sob demanda por código de barras',
+        cadence: 'Consulta GTIN sob demanda e contribuição auditada via cupom fiscal',
       },
     ],
   };
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 
-  console.log('\n=== Resumo da Atualização PreçoBrasil ===');
-  console.log(`Versão gerada: ${dataVersion}`);
-  console.log(`Período histórico: ${firstCollectionDate} até ${latestCollectionDate} (${sortedAllDates.length} dias com coletas)`);
-  console.log(`Janela ativa atual: ${activeWindowStart} a ${activeWindowEnd}`);
-  console.log(`Total de coletas no histórico: ${totalSamplesProcessed.toLocaleString('pt-BR')} (${totalAccepted.toLocaleString('pt-BR')} nesta execução)`);
-  console.log(`Cobertura: ${manifest.statesCovered}/27 UFs | ${manifest.citiesCovered} municípios IBGE`);
-  for (const item of CATALOG_ITEMS) {
-    const m = nationalLatest[item.id];
-    if (m) {
-      console.log(`  • ${item.name.padEnd(28)}: R$ ${m.avg.toFixed(2)} (${m.changePct >= 0 ? '+' : ''}${m.changePct.toFixed(2)}%, ${m.samples} coletas na janela)`);
-    }
-  }
+  console.log('\n=== Resumo da Atualização Multi-Fonte PreçoBrasil ===');
+  console.log(`Versão gerada: v${dataVersion}`);
+  console.log(
+    `Série histórica: ${firstCollectionDate} até ${latestCollectionDate} (${sortedAllDates.length} datas)`,
+  );
+  console.log(
+    `Total de registros históricos: ${totalSamplesProcessed.toLocaleString('pt-BR')} (${totalAccepted.toLocaleString('pt-BR')} processados nesta execução)`,
+  );
+  console.log(
+    `Cobertura: ${manifest.statesCovered}/27 UFs | ${manifest.citiesCovered} municípios IBGE | ${manifest.itemsCount} itens ativos | ${manifest.cmedProductsIndexed} EANs CMED`,
+  );
 }
 
 main().catch((err) => {
-  console.error('[ANP] Erro fatal:', err);
+  console.error('[PIPELINE] Erro fatal:', err);
   process.exit(1);
 });

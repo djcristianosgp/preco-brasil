@@ -1,14 +1,20 @@
 import { useMemo, useState } from 'react';
 import { ArrowUpDown, ChevronRight, Search } from 'lucide-react';
-import type { CatalogItem, LatestPricesPayload, PriceMetric } from '@/types/pricing';
+import type {
+  CatalogItem,
+  CitySnapshot,
+  LatestPricesPayload,
+  PriceMetric,
+} from '@/types/pricing';
 import { formatBRL, formatIntegerBR, formatVariation, normalizeSearchText } from '@/utils/formatters';
 
 interface LocationRankingListProps {
   latest: LatestPricesPayload | null;
+  activeStateCities?: Record<string, CitySnapshot>;
   selectedItem: CatalogItem | null;
   selectedUf: string | null;
   selectedCityCode: string | null;
-  onSelectState: (uf: string) => void;
+  onSelectState: (uf: string | null) => void;
   onSelectCity: (cityCode: string) => void;
 }
 
@@ -24,6 +30,7 @@ interface LocationRow {
 
 export function LocationRankingList({
   latest,
+  activeStateCities,
   selectedItem,
   selectedUf,
   selectedCityCode,
@@ -34,16 +41,16 @@ export function LocationRankingList({
   const [sortMode, setSortMode] = useState<SortMode>('asc');
 
   const isStateMode = Boolean(selectedUf);
+  const isStateOnlyItem = selectedItem?.geoLevel === 'state';
 
   const rows = useMemo(() => {
     if (!latest || !selectedItem) return [] as LocationRow[];
     const q = normalizeSearchText(filterText);
 
     let list: LocationRow[] = [];
-    if (isStateMode && selectedUf) {
-      const stateSnap = latest.states[selectedUf];
-      if (!stateSnap) return [];
-      list = Object.values(stateSnap.cities)
+    if (isStateMode && selectedUf && !isStateOnlyItem) {
+      const citiesSource = activeStateCities || latest.states[selectedUf]?.cities || {};
+      list = Object.values(citiesSource)
         .map((city) => {
           const metric = city.items[selectedItem.id];
           if (!metric) return null;
@@ -61,10 +68,13 @@ export function LocationRankingList({
         .map((st) => {
           const metric = st.items[selectedItem.id];
           if (!metric) return null;
+          const cityCount = st.citiesByItem?.[selectedItem.id] ?? st.citiesCount;
           return {
             key: st.uf,
             label: `${st.name} (${st.uf})`,
-            subLabel: `${st.citiesCount} cidades · ${formatIntegerBR(metric.samples)} coletas`,
+            subLabel: isStateOnlyItem
+              ? `Índice estadual · ${st.region}`
+              : `${cityCount} cidades · ${formatIntegerBR(metric.samples)} coletas`,
             metric,
             isSelected: st.uf === selectedUf,
           };
@@ -83,7 +93,17 @@ export function LocationRankingList({
     });
 
     return list;
-  }, [latest, selectedItem, isStateMode, selectedUf, selectedCityCode, filterText, sortMode]);
+  }, [
+    latest,
+    activeStateCities,
+    selectedItem,
+    isStateMode,
+    isStateOnlyItem,
+    selectedUf,
+    selectedCityCode,
+    filterText,
+    sortMode,
+  ]);
 
   const cycleSort = () => {
     setSortMode((prev) => (prev === 'asc' ? 'desc' : prev === 'desc' ? 'name' : 'asc'));
@@ -97,7 +117,9 @@ export function LocationRankingList({
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {isStateMode ? `Municípios em ${selectedUf}` : 'Ranking por Estado (27 UFs)'}
+            {isStateMode && !isStateOnlyItem
+              ? `Municípios em ${selectedUf}`
+              : 'Ranking por Estado (27 UFs)'}
           </h2>
           <p className="text-[11px] text-muted-foreground">
             {selectedItem?.name || 'Item'} · {rows.length} localidades
@@ -114,6 +136,19 @@ export function LocationRankingList({
         </button>
       </div>
 
+      {isStateMode && isStateOnlyItem && (
+        <div className="mb-2.5 flex items-center justify-between gap-2 rounded-lg border border-border bg-surface-elevated px-2.5 py-2 text-[11px] text-muted-foreground">
+          <span>Indicador oficial consolidado por UF ({selectedUf} destacado abaixo).</span>
+          <button
+            type="button"
+            onClick={() => onSelectState(null)}
+            className="shrink-0 font-semibold text-primary hover:underline"
+          >
+            Ver Brasil
+          </button>
+        </div>
+      )}
+
       <div className="relative mb-2.5">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
@@ -123,8 +158,8 @@ export function LocationRankingList({
           type="search"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
-          placeholder={isStateMode ? 'Filtrar município...' : 'Filtrar estado...'}
-          aria-label={isStateMode ? 'Filtrar município' : 'Filtrar estado'}
+          placeholder={isStateMode && !isStateOnlyItem ? 'Filtrar município...' : 'Filtrar estado...'}
+          aria-label={isStateMode && !isStateOnlyItem ? 'Filtrar município' : 'Filtrar estado'}
           className="h-9 w-full rounded-lg border border-input bg-surface-elevated pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
         />
       </div>
@@ -139,7 +174,9 @@ export function LocationRankingList({
             <button
               key={row.key}
               type="button"
-              onClick={() => (isStateMode ? onSelectCity(row.key) : onSelectState(row.key))}
+              onClick={() =>
+                isStateMode && !isStateOnlyItem ? onSelectCity(row.key) : onSelectState(row.key)
+              }
               className={`flex min-h-[48px] w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left transition ${
                 row.isSelected
                   ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
