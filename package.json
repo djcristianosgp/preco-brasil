@@ -1,0 +1,58 @@
+{
+  "name": "preco-brasil",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Monitoramento corporativo da evolução diária de preços no Brasil com mapa coroplético por estado/município e busca por código de barras.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "data:geo": "node scripts/fetch-ibge-geo.mjs",
+    "data:update": "node scripts/update-prices.mjs",
+    "data:backfill": "node scripts/update-prices.mjs --backfill"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "d3-geo": "^3.1.1",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.4",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/d3-geo": "^3.1.0",
+    "@types/geojson": "^7946.0.14",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react-swc": "^3.10.2",
+    "@vitest/coverage-v8": "^3.2.4",
+    "autoprefixer": "^10.5.2",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^15.15.0",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vite": "^6.4.2",
+    "vitest": "^3.2.4"
+  }
+}

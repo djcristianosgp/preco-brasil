@@ -1,0 +1,29 @@
+{
+  "dataVersion": "2026.11.23.2",
+  "generatedAt": "2026-11-23T16:34:40.201Z",
+  "firstCollectionDate": "2026-07-01",
+  "latestCollectionDate": "2026-11-13",
+  "activeWindowStart": "2026-11-07",
+  "activeWindowEnd": "2026-11-13",
+  "totalDays": 102,
+  "totalSamplesProcessed": 390584,
+  "statesCovered": 27,
+  "citiesCovered": 418,
+  "sources": [
+    {
+      "name": "ANP — Levantamento de Preços de Combustíveis (LPC)",
+      "url": "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis",
+      "cadence": "Coleta diária / Atualização matinal às 06:00 BRT"
+    },
+    {
+      "name": "IBGE — Malhas Territoriais v3 & Localidades v1",
+      "url": "https://servicodados.ibge.gov.br/api/docs",
+      "cadence": "Malha oficial pré-cacheada (27 UFs / 5.571 municípios)"
+    },
+    {
+      "name": "Open Food Facts Brasil — API v2 GTIN/EAN",
+      "url": "https://br.openfoodfacts.org/",
+      "cadence": "Consulta ao vivo sob demanda por código de barras"
+    }
+  ]
+}

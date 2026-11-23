@@ -1,0 +1,19 @@
+{
+  "snapshots": [
+    {
+      "date": "2026-11-23",
+      "dataVersion": "2026.11.23.2",
+      "latestCollectionDate": "2026-11-13",
+      "totalSamples": 390584,
+      "nationalAverages": {
+        "gasolina-comum": 6.512,
+        "etanol": 4.45,
+        "diesel-s10": 7.308,
+        "diesel-comum": 7.089,
+        "gasolina-aditivada": 6.716,
+        "glp-13kg": 116.531,
+        "gnv": 4.95
+      }
+    }
+  ]
+}

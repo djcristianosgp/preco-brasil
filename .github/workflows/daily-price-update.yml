@@ -1,0 +1,63 @@
+name: Atualização Diária de Preços (PreçoBrasil)
+
+on:
+  schedule:
+    # 09:00 UTC = 06:00 BRT (Horário de Brasília)
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: 'Executar backfill completo do histórico 2026?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  contents: write
+
+jobs:
+  update-daily-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch latest official ANP prices and update versioned JSONs
+        run: |
+          if [ "${{ github.event.inputs.backfill }}" = "true" ]; then
+            npm run data:backfill
+          else
+            npm run data:update
+          fi
+
+      - name: Run typecheck, lint, unit tests and production build
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run test
+          npm run build
+
+      - name: Commit and push updated daily JSON snapshot
+        run: |
+          git config user.name "preco-brasil-bot"
+          git config user.email "bot@precobrasil.local"
+          git add public/data/
+          if git diff --staged --quiet; then
+            echo "Nenhuma alteração nos JSONs de preços hoje."
+          else
+            TODAY=$(date -u +%Y-%m-%d)
+            git commit -m "chore(data): atualizar precos diarios $TODAY"
+            git push
+          fi

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+scripts/cache/
+.env
+.env.local
+.vercel
+*.log
+.DS_Store
+Thumbs.db

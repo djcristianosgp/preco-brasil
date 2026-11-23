@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 216 25% 96%;
+    --foreground: 210 62% 16%;
+    --surface: 0 0% 100%;
+    --surface-elevated: 210 33% 98%;
+    --surface-muted: 214 27% 93%;
+    --primary: 221 83% 47%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 214 27% 93%;
+    --muted-foreground: 215 19% 40%;
+    --accent: 214 32% 91%;
+    --accent-foreground: 210 62% 16%;
+    --border: 214 24% 86%;
+    --input: 214 24% 84%;
+    --ring: 221 83% 47%;
+  }
+
+  .dark {
+    --background: 215 44% 7%;
+    --foreground: 210 40% 96%;
+    --surface: 214 40% 11%;
+    --surface-elevated: 214 38% 14%;
+    --surface-muted: 215 34% 17%;
+    --primary: 213 94% 58%;
+    --primary-foreground: 215 44% 7%;
+    --muted: 215 34% 17%;
+    --muted-foreground: 215 20% 66%;
+    --accent: 215 32% 20%;
+    --accent-foreground: 210 40% 96%;
+    --border: 215 28% 22%;
+    --input: 215 28% 24%;
+    --ring: 213 94% 58%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.safe-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}

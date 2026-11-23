@@ -1,0 +1,180 @@
+{
+  "items": [
+    {
+      "id": "gasolina-comum",
+      "name": "Gasolina Comum",
+      "shortName": "Gasolina",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/L",
+      "decimals": 2,
+      "anpCode": "320102001",
+      "ncm": "27101259",
+      "barcodes": [
+        "320102001",
+        "27101259",
+        "7890003201027"
+      ],
+      "aliases": [
+        "gasolina",
+        "gasolina c",
+        "gasolina comum",
+        "combustivel",
+        "gasolina tipo c"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": true,
+      "priority": 1
+    },
+    {
+      "id": "etanol",
+      "name": "Etanol Hidratado",
+      "shortName": "Etanol",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/L",
+      "decimals": 2,
+      "anpCode": "810101001",
+      "ncm": "22071090",
+      "barcodes": [
+        "810101001",
+        "22071090",
+        "7890008101018"
+      ],
+      "aliases": [
+        "etanol",
+        "alcool",
+        "etanol hidratado",
+        "álcool combustível",
+        "etanol comum"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": true,
+      "priority": 2
+    },
+    {
+      "id": "diesel-s10",
+      "name": "Óleo Diesel S10",
+      "shortName": "Diesel S10",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/L",
+      "decimals": 2,
+      "anpCode": "820101034",
+      "ncm": "27101921",
+      "barcodes": [
+        "820101034",
+        "27101921",
+        "7890008201039"
+      ],
+      "aliases": [
+        "diesel s10",
+        "s10",
+        "oleo diesel s10",
+        "diesel aditivado"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": true,
+      "priority": 3
+    },
+    {
+      "id": "diesel-comum",
+      "name": "Óleo Diesel Comum",
+      "shortName": "Diesel",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/L",
+      "decimals": 2,
+      "anpCode": "820101012",
+      "ncm": "27101921",
+      "barcodes": [
+        "820101012",
+        "7890008201015"
+      ],
+      "aliases": [
+        "diesel",
+        "diesel comum",
+        "diesel s500",
+        "oleo diesel"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": true,
+      "priority": 4
+    },
+    {
+      "id": "gasolina-aditivada",
+      "name": "Gasolina Aditivada",
+      "shortName": "Gas. Aditivada",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/L",
+      "decimals": 2,
+      "anpCode": "320102002",
+      "ncm": "27101259",
+      "barcodes": [
+        "320102002",
+        "7890003201034"
+      ],
+      "aliases": [
+        "gasolina aditivada",
+        "aditivada",
+        "grid",
+        "podium",
+        "v-power"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": true,
+      "priority": 5
+    },
+    {
+      "id": "glp-13kg",
+      "name": "Gás de Cozinha (GLP 13 kg)",
+      "shortName": "GLP 13 kg",
+      "category": "energia",
+      "categoryLabel": "Gás & Energia",
+      "unit": "R$/13kg",
+      "decimals": 2,
+      "anpCode": "210203001",
+      "ncm": "27111910",
+      "barcodes": [
+        "210203001",
+        "27111910",
+        "7890002102035"
+      ],
+      "aliases": [
+        "glp",
+        "gas de cozinha",
+        "botijao",
+        "botijao 13kg",
+        "gas glp"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de GLP",
+      "featured": false,
+      "priority": 6
+    },
+    {
+      "id": "gnv",
+      "name": "Gás Natural Veicular (GNV)",
+      "shortName": "GNV",
+      "category": "combustiveis",
+      "categoryLabel": "Combustíveis Automotivos",
+      "unit": "R$/m³",
+      "decimals": 2,
+      "anpCode": "220101005",
+      "ncm": "27112100",
+      "barcodes": [
+        "220101005",
+        "27112100",
+        "7890002201011"
+      ],
+      "aliases": [
+        "gnv",
+        "gas natural",
+        "gas veicular"
+      ],
+      "sourceName": "ANP — Levantamento de Preços de Combustíveis",
+      "featured": false,
+      "priority": 7
+    }
+  ]
+}
