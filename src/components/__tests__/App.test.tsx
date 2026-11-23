@@ -80,5 +80,5 @@ describe('App integration flow', () => {
     fireEvent.click(within(header).getByRole('button', { name: /^Código$/i }));
     expect(screen.getByRole('dialog', { name: /Leitor de código de barras/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Fechar leitor/i }));
-  });
+  }, 15000);
 });

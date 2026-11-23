@@ -46,7 +46,7 @@ export async function loadLatestPrices(): Promise<LatestPricesPayload> {
 }
 
 export async function loadBrazilGeo(): Promise<GeoAreaFeatureCollection> {
-  return fetchJson<GeoAreaFeatureCollection>('/geo/brazil-states.json', true);
+  return fetchJson<GeoAreaFeatureCollection>('/geo/brazil-states.json?v=2', true);
 }
 
 export async function loadStateGeo(
@@ -55,7 +55,7 @@ export async function loadStateGeo(
 ): Promise<GeoAreaFeatureCollection> {
   const upperUf = uf.toUpperCase();
   try {
-    return await fetchJson<GeoAreaFeatureCollection>(`/geo/states/${upperUf}.json`, true);
+    return await fetchJson<GeoAreaFeatureCollection>(`/geo/states/${upperUf}.json?v=2`, true);
   } catch (localError) {
     if (!stateCode) {
       logger.error('Falha ao carregar malha estadual local', localError);

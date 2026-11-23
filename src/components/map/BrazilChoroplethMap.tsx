@@ -27,7 +27,7 @@ interface BrazilChoroplethMapProps {
 }
 
 const SVG_WIDTH = 600;
-const SVG_HEIGHT = 560;
+const SVG_HEIGHT = 580;
 
 const UF_LABEL_OFFSETS: Record<string, [number, number]> = {
   DF: [0, -6],
@@ -89,8 +89,8 @@ export function BrazilChoroplethMap({
     if (!activeGeo || !activeGeo.features?.length) return [];
     const projection = geoMercator().fitExtent(
       [
-        [20, 20],
-        [SVG_WIDTH - 20, SVG_HEIGHT - 20],
+        [8, 8],
+        [SVG_WIDTH - 8, SVG_HEIGHT - 8],
       ],
       activeGeo,
     );
@@ -147,7 +147,7 @@ export function BrazilChoroplethMap({
                 ? `Mapa municipal de ${activeStateSnapshot?.name || selectedUf}`
                 : 'Mapa do Brasil separado por estados'
             }
-            className="h-auto max-h-[430px] w-full select-none touch-manipulation sm:max-h-[520px]"
+            className="h-auto max-h-[480px] w-full select-none touch-manipulation sm:max-h-[620px] lg:max-h-[660px]"
             onMouseLeave={() => setHoverInfo(null)}
           >
             <g
@@ -227,7 +227,7 @@ export function BrazilChoroplethMap({
                       y={cy + dy}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      className="pointer-events-none fill-white text-[10px] font-bold drop-shadow-[0_1px_2px_rgba(15,41,66,0.9)]"
+                      className="pointer-events-none fill-white text-[11px] font-bold drop-shadow-[0_1px_2px_rgba(15,41,66,0.9)]"
                     >
                       {uf}
                     </text>
