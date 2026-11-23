@@ -1,7 +1,7 @@
 {
   "name": "preco-brasil",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Monitoramento corporativo da evolução diária de preços no Brasil com mapa coroplético por estado/município e busca por código de barras.",
   "engines": {
