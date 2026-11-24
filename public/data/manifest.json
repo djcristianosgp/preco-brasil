@@ -1,12 +1,12 @@
 {
-  "dataVersion": "2026.11.23.4",
-  "generatedAt": "2026-11-23T17:34:32.032Z",
+  "dataVersion": "2026.11.24.1",
+  "generatedAt": "2026-11-24T09:12:26.543Z",
   "firstCollectionDate": "2026-01-01",
   "latestCollectionDate": "2026-11-13",
   "activeWindowStart": "2026-11-07",
   "activeWindowEnd": "2026-11-13",
-  "totalDays": 138,
-  "totalSamplesProcessed": 466738,
+  "totalDays": 139,
+  "totalSamplesProcessed": 466954,
   "statesCovered": 27,
   "citiesCovered": 5512,
   "itemsCount": 35,
@@ -20,13 +20,15 @@
   "connectorStatus": [
     {
       "name": "anp",
-      "status": "ok",
-      "accepted": 82891
+      "status": "warning",
+      "accepted": 0,
+      "message": "fetch failed"
     },
     {
       "name": "aneel",
-      "status": "ok",
-      "accepted": 60610
+      "status": "warning",
+      "accepted": 0,
+      "message": "fetch failed"
     },
     {
       "name": "anvisa-cmed",
