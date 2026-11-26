@@ -1,12 +1,12 @@
 {
-  "dataVersion": "2026.11.25.1",
-  "generatedAt": "2026-11-25T09:12:08.328Z",
+  "dataVersion": "2026.11.26.1",
+  "generatedAt": "2026-11-26T09:12:11.656Z",
   "firstCollectionDate": "2026-01-01",
   "latestCollectionDate": "2026-11-13",
   "activeWindowStart": "2026-11-07",
   "activeWindowEnd": "2026-11-13",
-  "totalDays": 140,
-  "totalSamplesProcessed": 467170,
+  "totalDays": 141,
+  "totalSamplesProcessed": 467386,
   "statesCovered": 27,
   "citiesCovered": 5512,
   "itemsCount": 35,
@@ -53,7 +53,7 @@
     {
       "name": "bcb-ptax",
       "status": "ok",
-      "accepted": 223
+      "accepted": 224
     },
     {
       "name": "community-nfce",
