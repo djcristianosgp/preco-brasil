@@ -1,12 +1,12 @@
 {
-  "dataVersion": "2026.11.27.1",
-  "generatedAt": "2026-11-27T09:11:51.404Z",
+  "dataVersion": "2026.11.28.1",
+  "generatedAt": "2026-11-28T09:11:17.078Z",
   "firstCollectionDate": "2026-01-01",
   "latestCollectionDate": "2026-11-13",
   "activeWindowStart": "2026-11-07",
   "activeWindowEnd": "2026-11-13",
-  "totalDays": 142,
-  "totalSamplesProcessed": 467602,
+  "totalDays": 143,
+  "totalSamplesProcessed": 467818,
   "statesCovered": 27,
   "citiesCovered": 5512,
   "itemsCount": 35,
@@ -37,8 +37,9 @@
     },
     {
       "name": "conab-prohort",
-      "status": "ok",
-      "accepted": 13138
+      "status": "warning",
+      "accepted": 0,
+      "message": "fetch failed"
     },
     {
       "name": "ibge-sinapi",
@@ -53,7 +54,7 @@
     {
       "name": "bcb-ptax",
       "status": "ok",
-      "accepted": 225
+      "accepted": 226
     },
     {
       "name": "community-nfce",
